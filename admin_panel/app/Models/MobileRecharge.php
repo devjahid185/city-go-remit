@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class MobileRecharge extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'email',
+        'mobile_number',
+        'operator',
+        'amount',
+        'transaction_id',
+        'status',
+        'reviewed_by',
+        'admin_note',
+        'debited_at',
+        'processed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'amount' => 'decimal:2',
+            'debited_at' => 'datetime',
+            'processed_at' => 'datetime',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+}

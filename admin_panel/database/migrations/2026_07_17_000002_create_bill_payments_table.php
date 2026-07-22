@@ -1,0 +1,42 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('bill_payments', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('email');
+            $table->string('category');
+            $table->string('provider');
+            $table->string('bill_type')->nullable();
+            $table->string('account_number');
+            $table->string('contact_number')->nullable();
+            $table->string('billing_period')->nullable();
+            $table->decimal('amount', 12, 2);
+            $table->decimal('charge', 10, 2)->default(0);
+            $table->decimal('total_amount', 12, 2);
+            $table->string('transaction_id')->unique();
+            $table->string('status')->default('pending');
+            $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->text('admin_note')->nullable();
+            $table->timestamp('debited_at')->nullable();
+            $table->timestamp('processed_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['email', 'created_at']);
+            $table->index(['category', 'status']);
+            $table->index(['account_number', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('bill_payments');
+    }
+};

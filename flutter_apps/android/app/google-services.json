@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "945338558097",
+    "project_id": "city-go-remit",
+    "storage_bucket": "city-go-remit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945338558097:android:ee8ed145fcfd4ac4448130",
+        "android_client_info": {
+          "package_name": "com.sohojit.city.go.remit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDziAhORhX7EvKagKWPzezGZ_gq6q7Zdho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,60 @@
+# Root workspace
+.continue/
+.agents/
+.codex/
+history/
+stitch/
+stitch (1)/
+stitch_professional_fintech_app_redesign/
+stitch_professional_fintech_app_redesign (1)/
+stitch_professional_fintech_app_redesign (2)/
+*.zip
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*firebase-adminsdk*.json
+admin_panel/storage/app/firebase/*.json
+flutter_apps/google-services*.json
+
+# Laravel
+admin_panel/vendor/
+admin_panel/.phpunit.result.cache
+admin_panel/storage/*
+!admin_panel/storage/**/
+!admin_panel/storage/**/.gitignore
+admin_panel/bootstrap/cache/*
+!admin_panel/bootstrap/cache/.gitignore
+
+# React
+admin_react/node_modules/
+admin_react/dist/
+admin_react/.env
+
+# Flutter
+flutter_apps/.dart_tool/
+flutter_apps/build/
+flutter_apps/.flutter-plugins
+flutter_apps/.flutter-plugins-dependencies
+flutter_apps/.idea/
+flutter_apps/**/*.iml
+flutter_apps/android/.gradle/
+flutter_apps/android/app/debug/
+flutter_apps/android/app/profile/
+flutter_apps/android/app/release/
+flutter_apps/ios/Flutter/ephemeral/
+flutter_apps/linux/flutter/ephemeral/
+flutter_apps/macos/Flutter/ephemeral/
+flutter_apps/windows/flutter/ephemeral/
+
+# OS/editor
+Thumbs.db
+.DS_Store
+*.log
