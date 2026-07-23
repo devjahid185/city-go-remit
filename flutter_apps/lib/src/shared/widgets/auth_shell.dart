@@ -107,7 +107,6 @@ class _BrandHeader extends StatelessWidget {
           width: 68,
           height: 68,
           decoration: BoxDecoration(
-            color: AppColors.financePrimary,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -117,10 +116,10 @@ class _BrandHeader extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.account_balance_rounded,
-            color: Colors.white,
-            size: 34,
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            'assets/images/app_logo.png',
+            fit: BoxFit.cover,
           ),
         ),
         const SizedBox(height: 16),

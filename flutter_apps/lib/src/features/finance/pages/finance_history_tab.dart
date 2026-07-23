@@ -25,6 +25,7 @@ class _FinanceHistoryTabState extends State<FinanceHistoryTab> {
     'out': 0,
     'recharge': 0,
     'bank_transfer': 0,
+    'wallet_withdrawal': 0,
     'drive_offer': 0,
     'pending': 0,
   };
@@ -35,6 +36,7 @@ class _FinanceHistoryTabState extends State<FinanceHistoryTab> {
     _HistoryFilter('out', Icons.call_made_rounded),
     _HistoryFilter('recharge', Icons.phone_iphone_rounded),
     _HistoryFilter('bank_transfer', Icons.account_balance_rounded),
+    _HistoryFilter('wallet_withdrawal', Icons.account_balance_wallet_rounded),
     _HistoryFilter('drive_offer', Icons.wifi_tethering_rounded),
     _HistoryFilter('pending', Icons.schedule_rounded),
   ];
@@ -97,6 +99,7 @@ class _FinanceHistoryTabState extends State<FinanceHistoryTab> {
         'out': _asInt(summary['out']),
         'recharge': _asInt(summary['recharge']),
         'bank_transfer': _asInt(summary['bank_transfer']),
+        'wallet_withdrawal': _asInt(summary['wallet_withdrawal']),
         'drive_offer': _asInt(summary['drive_offer']),
         'pending': _asInt(summary['pending']),
       };
@@ -120,6 +123,7 @@ class _FinanceHistoryTabState extends State<FinanceHistoryTab> {
       'out' => item.direction == 'out',
       'recharge' => item.category == 'recharge',
       'bank_transfer' => item.category == 'bank_transfer',
+      'wallet_withdrawal' => item.category == 'wallet_withdrawal',
       'drive_offer' => item.category == 'drive_offer',
       'pending' => item.status == 'pending' || item.status == 'processing',
       _ => true,
@@ -544,6 +548,7 @@ class _HistoryTile extends StatelessWidget {
     return switch (item.category) {
       'recharge' => Icons.phone_iphone_rounded,
       'bank_transfer' => Icons.account_balance_rounded,
+      'wallet_withdrawal' => Icons.account_balance_wallet_rounded,
       'transfer' => item.direction == 'in'
           ? Icons.call_received_rounded
           : Icons.call_made_rounded,
@@ -613,6 +618,10 @@ class _HistoryDetailsSheet extends StatelessWidget {
               _DetailRow(label: AppText.t('mobile_number'), value: item.meta['mobile_number'].toString()),
             if ((item.meta['bank_name'] ?? '').toString().isNotEmpty)
               _DetailRow(label: AppText.t('select_bank'), value: item.meta['bank_name'].toString()),
+            if ((item.meta['wallet_provider'] ?? '').toString().isNotEmpty)
+              _DetailRow(label: AppText.t('wallet_withdrawal_title'), value: item.meta['wallet_provider'].toString()),
+            if ((item.meta['wallet_number'] ?? '').toString().isNotEmpty)
+              _DetailRow(label: AppText.t('wallet_number'), value: item.meta['wallet_number'].toString()),
             if ((item.meta['account_name'] ?? '').toString().isNotEmpty)
               _DetailRow(label: AppText.t('account_holder_name'), value: item.meta['account_name'].toString()),
             if ((item.meta['account_number'] ?? '').toString().isNotEmpty)

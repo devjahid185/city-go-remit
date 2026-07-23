@@ -6,10 +6,10 @@
     </label>
 
     <div class="sidebar-brand">
-        <div class="brand-mark">bd</div>
+        <img class="brand-mark" src="{{ asset('assets/brand/logo.png') }}" alt="{{ config('app.name', 'City Go Remit') }} logo">
         <div>
-            <h1>Admin Panel</h1>
-            <p>IQBAL SYSTEM</p>
+            <h1>City Go Remit</h1>
+            <p>ADMIN SYSTEM</p>
         </div>
     </div>
 

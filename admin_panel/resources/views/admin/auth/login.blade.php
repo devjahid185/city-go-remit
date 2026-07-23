@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin Login | {{ config('app.name', 'City Go Remit') }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/brand/favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@450&display=swap" rel="stylesheet">
@@ -73,19 +75,14 @@
         }
 
         .login-icon {
-            display: grid;
+            display: block;
             width: 64px;
             height: 64px;
-            place-items: center;
             border: 1px solid var(--outline-variant);
             border-radius: var(--radius);
             background: var(--surface-container);
-            color: var(--primary-container);
-        }
-
-        .login-icon .material-symbols-outlined {
-            font-size: 34px;
-            font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+            object-fit: cover;
+            box-shadow: 0 12px 26px rgba(17, 28, 45, .10);
         }
 
         h1 {
@@ -274,9 +271,7 @@
 <body>
     <main class="login-card">
         <section class="login-head">
-            <div class="login-icon">
-                <span class="material-symbols-outlined">admin_panel_settings</span>
-            </div>
+            <img class="login-icon" src="{{ asset('assets/brand/logo.png') }}" alt="{{ config('app.name', 'City Go Remit') }} logo">
             <div>
                 <h1>City Go Remit Administrative System</h1>
                 <p class="subtitle">Sign in to access your administrative workspace.</p>

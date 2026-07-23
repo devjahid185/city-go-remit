@@ -85,7 +85,6 @@ class _SplashPageState extends State<SplashPage> {
                         width: 76,
                         height: 76,
                         decoration: BoxDecoration(
-                          color: AppColors.financePrimary,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
@@ -95,10 +94,10 @@ class _SplashPageState extends State<SplashPage> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.account_balance_rounded,
-                          color: Colors.white,
-                          size: 38,
+                        clipBehavior: Clip.antiAlias,
+                        child: Image.asset(
+                          'assets/images/app_logo.png',
+                          fit: BoxFit.cover,
                         ),
                       ),
                       const SizedBox(height: 22),

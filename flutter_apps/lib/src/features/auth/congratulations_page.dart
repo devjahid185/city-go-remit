@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_apps/src/core/app_colors.dart';
 import 'package:flutter_apps/src/features/auth/login_page.dart';
 import 'package:flutter_apps/src/features/auth/models/geo_location.dart';
 import 'package:flutter_apps/src/shared/widgets/app_button.dart';

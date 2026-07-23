@@ -10,12 +10,15 @@ use App\Http\Controllers\Api\Admin\DashboardController as AdminApiDashboardContr
 use App\Http\Controllers\Api\Admin\DriveOfferController as AdminApiDriveOfferController;
 use App\Http\Controllers\Api\Admin\DriveOfferOrderController as AdminApiDriveOfferOrderController;
 use App\Http\Controllers\Api\Admin\ExchangeRateController as AdminApiExchangeRateController;
+use App\Http\Controllers\Api\Admin\GeneralSettingController as AdminApiGeneralSettingController;
 use App\Http\Controllers\Api\Admin\MobileRechargeController as AdminApiMobileRechargeController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminApiNotificationController;
 use App\Http\Controllers\Api\Admin\ProfileController as AdminApiProfileController;
 use App\Http\Controllers\Api\Admin\ReferralController as AdminApiReferralController;
 use App\Http\Controllers\Api\Admin\UserController as AdminApiUserController;
+use App\Http\Controllers\Api\Admin\WalletWithdrawalController as AdminApiWalletWithdrawalController;
 use App\Http\Controllers\Api\AppNotificationController;
+use App\Http\Controllers\Api\AppSettingController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\BankTransferController;
 use App\Http\Controllers\Api\BannerController;
@@ -29,11 +32,13 @@ use App\Http\Controllers\Api\NotificationTokenController;
 use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\RegisteredUserController;
 use App\Http\Controllers\Api\SecurityController;
+use App\Http\Controllers\Api\WalletWithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
 Route::get('/banners', [BannerController::class, 'index'])->name('api.banners.index');
 Route::get('/banners/{banner}/image', [BannerController::class, 'image'])->name('api.banners.image');
+Route::get('/settings', [AppSettingController::class, 'show'])->name('api.settings.show');
 Route::get('/profile', [AuthController::class, 'profile'])->name('api.profile');
 Route::post('/notification-token', [NotificationTokenController::class, 'store'])->name('api.notification-token.store');
 Route::delete('/notification-token', [NotificationTokenController::class, 'destroy'])->name('api.notification-token.destroy');
@@ -52,6 +57,9 @@ Route::get('/bill-payments', [BillPaymentController::class, 'index'])->name('api
 Route::post('/bank-transfer/request-otp', [BankTransferController::class, 'requestOtp'])->name('api.bank-transfer.request-otp');
 Route::post('/bank-transfer/confirm', [BankTransferController::class, 'confirm'])->name('api.bank-transfer.confirm');
 Route::get('/bank-transfers', [BankTransferController::class, 'index'])->name('api.bank-transfer.index');
+Route::post('/wallet-withdrawal/request-otp', [WalletWithdrawalController::class, 'requestOtp'])->name('api.wallet-withdrawal.request-otp');
+Route::post('/wallet-withdrawal/confirm', [WalletWithdrawalController::class, 'confirm'])->name('api.wallet-withdrawal.confirm');
+Route::get('/wallet-withdrawals', [WalletWithdrawalController::class, 'index'])->name('api.wallet-withdrawal.index');
 Route::get('/drive-offers', [DriveOfferController::class, 'index'])->name('api.drive-offers.index');
 Route::get('/exchange-rates', [ExchangeRateController::class, 'index'])->name('api.exchange-rates.index');
 Route::post('/drive-offer/request-otp', [DriveOfferController::class, 'requestOtp'])->name('api.drive-offer.request-otp');
@@ -81,6 +89,8 @@ Route::prefix('admin')->name('api.admin.')->group(function (): void {
         Route::put('/profile', [AdminApiProfileController::class, 'update'])->name('profile.update');
         Route::put('/profile/password', [AdminApiProfileController::class, 'changePassword'])->name('profile.password');
         Route::get('/dashboard', AdminApiDashboardController::class)->name('dashboard');
+        Route::get('/general-settings', [AdminApiGeneralSettingController::class, 'show'])->name('general-settings.show');
+        Route::put('/general-settings', [AdminApiGeneralSettingController::class, 'update'])->name('general-settings.update');
         Route::get('/banners', [AdminApiBannerController::class, 'index'])->name('banners.index');
         Route::post('/banners', [AdminApiBannerController::class, 'store'])->name('banners.store');
         Route::post('/banners/{banner}', [AdminApiBannerController::class, 'update'])->name('banners.update');
@@ -93,6 +103,7 @@ Route::prefix('admin')->name('api.admin.')->group(function (): void {
         Route::apiResource('recharges', AdminApiMobileRechargeController::class)->only(['index', 'show', 'update']);
         Route::apiResource('bill-payments', AdminApiBillPaymentController::class)->only(['index', 'update']);
         Route::apiResource('bank-transfers', AdminApiBankTransferController::class)->only(['index', 'update']);
+        Route::apiResource('wallet-withdrawals', AdminApiWalletWithdrawalController::class)->only(['index', 'update']);
         Route::apiResource('drive-offers', AdminApiDriveOfferController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::apiResource('drive-offer-orders', AdminApiDriveOfferOrderController::class)->only(['index', 'update']);
         Route::apiResource('exchange-rates', AdminApiExchangeRateController::class)->only(['index', 'store', 'update', 'destroy']);

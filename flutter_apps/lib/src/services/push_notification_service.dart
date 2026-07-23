@@ -21,6 +21,7 @@ class PushNotificationService {
   static final instance = PushNotificationService._();
 
   final _api = AuthApi();
+  static const _nativeNotifications = MethodChannel('city_go_remit/notifications');
   bool _initialized = false;
 
   FirebaseMessaging get _messaging => FirebaseMessaging.instance;
@@ -45,6 +46,10 @@ class PushNotificationService {
         if (notification != null) {
           SystemSound.play(SystemSoundType.alert);
           HapticFeedback.mediumImpact();
+          _showSystemNotification(
+            title: notification.title ?? 'Notification',
+            body: notification.body ?? '',
+          );
           _showForegroundNotice(
             title: notification.title ?? 'Notification',
             body: notification.body ?? '',
@@ -192,5 +197,21 @@ class PushNotificationService {
           ),
         ),
       );
+  }
+
+  Future<void> _showSystemNotification({
+    required String title,
+    required String body,
+  }) async {
+    if (kIsWeb || !Platform.isAndroid) return;
+
+    try {
+      await _nativeNotifications.invokeMethod('showNotification', {
+        'title': title,
+        'body': body,
+      });
+    } catch (error) {
+      debugPrint('Could not show foreground system notification: $error');
+    }
   }
 }

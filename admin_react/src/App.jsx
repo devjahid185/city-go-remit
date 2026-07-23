@@ -16,25 +16,31 @@ import {
   Plus,
   ReceiptText,
   Search,
+  Send,
+  Settings,
   ShieldCheck,
   Smartphone,
   Trash2,
   UserRound,
   UsersRound,
+  Wallet,
   Wifi,
   X,
+  Youtube,
 } from 'lucide-react';
 import api from './api/client.js';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'banners', label: 'App Banners', icon: ImageIcon },
+  { key: 'general-settings', label: 'General Settings', icon: Settings },
   { key: 'notifications', label: 'Push Notifications', icon: Bell },
   { key: 'referrals', label: 'Referral System', icon: Gift },
   { key: 'users', label: 'User Management', icon: UsersRound },
   { key: 'recharges', label: 'Recharge Transactions', icon: Smartphone },
   { key: 'bills', label: 'Bill Payments', icon: ReceiptText },
   { key: 'bank-transfers', label: 'Bank Transfers', icon: Landmark },
+  { key: 'wallet-withdrawals', label: 'Wallet Withdrawals', icon: Wallet },
   { key: 'exchange-rates', label: 'Exchange Rates', icon: BarChart3 },
   { key: 'drive-offers', label: 'Drive Offers', icon: Wifi },
   { key: 'drive-orders', label: 'Offer Orders', icon: Activity },
@@ -155,7 +161,7 @@ function LoginPage({ onLogin }) {
         </section>
 
         <form onSubmit={submit} className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-600 text-lg font-medium text-white">SB</div>
+          <img src="/logo.png" alt="City Go Remit logo" className="h-12 w-12 rounded-xl object-cover shadow-sm" />
           <h2 className="mt-7 text-2xl font-medium text-slate-950">Admin Login</h2>
           <p className="mt-2 text-sm text-slate-500">Sign in with your authorized admin account.</p>
 
@@ -198,7 +204,7 @@ function AdminShell({ admin, onAdminChange, onLogout }) {
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[min(22rem,calc(100vw-1rem))] flex-col border-r border-slate-200 bg-white/95 px-4 py-4 shadow-2xl shadow-slate-950/10 backdrop-blur transition duration-300 lg:w-[19rem] lg:translate-x-0 lg:bg-white lg:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between rounded-[14px] border border-slate-200 bg-slate-50 p-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-600 text-sm font-medium text-white shadow-sm">SB</div>
+            <img src="/logo.png" alt="City Go Remit logo" className="h-12 w-12 shrink-0 rounded-xl object-cover shadow-sm" />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-slate-950">City Go Remit</p>
               <p className="truncate text-xs text-slate-500">Secure Admin Console</p>
@@ -265,12 +271,14 @@ function AdminShell({ admin, onAdminChange, onLogout }) {
         <section className="p-3 sm:p-5 lg:p-6">
           {activePage === 'dashboard' ? <Dashboard onNavigate={setActivePage} /> : null}
           {activePage === 'banners' ? <BannersPage /> : null}
+          {activePage === 'general-settings' ? <GeneralSettingsPage /> : null}
           {activePage === 'notifications' ? <NotificationsPage /> : null}
           {activePage === 'referrals' ? <ReferralAdminPage /> : null}
           {activePage === 'users' ? <UsersPage /> : null}
           {activePage === 'recharges' ? <RechargesPage /> : null}
           {activePage === 'bills' ? <BillPaymentsPage /> : null}
           {activePage === 'bank-transfers' ? <BankTransfersPage /> : null}
+          {activePage === 'wallet-withdrawals' ? <WalletWithdrawalsPage /> : null}
           {activePage === 'exchange-rates' ? <ExchangeRatesPage /> : null}
           {activePage === 'drive-offers' ? <DriveOffersPage /> : null}
           {activePage === 'drive-orders' ? <DriveOfferOrdersPage /> : null}
@@ -456,6 +464,7 @@ function Dashboard({ onNavigate }) {
     ['Mobile Recharge', data.transaction_modules?.mobile_recharge, Smartphone, 'recharges'],
     ['Bill Payment', data.transaction_modules?.bill_payment, ReceiptText, 'bills'],
     ['Bank Transfer', data.transaction_modules?.bank_transfer, Landmark, 'bank-transfers'],
+    ['Wallet Withdrawal', data.transaction_modules?.wallet_withdrawal, Wallet, 'wallet-withdrawals'],
     ['Drive Offer', data.transaction_modules?.drive_offer, Wifi, 'drive-orders'],
   ];
 
@@ -463,6 +472,7 @@ function Dashboard({ onNavigate }) {
     ['Recharge', data.pending_queues?.recharges || 0, 'recharges', Smartphone],
     ['Bills', data.pending_queues?.bill_payments || 0, 'bills', ReceiptText],
     ['Bank', data.pending_queues?.bank_transfers || 0, 'bank-transfers', Landmark],
+    ['Wallets', data.pending_queues?.wallet_withdrawals || 0, 'wallet-withdrawals', Wallet],
     ['Offers', data.pending_queues?.drive_offers || 0, 'drive-orders', Wifi],
     ['Chats', data.pending_queues?.chats || 0, 'chats', MessageCircle],
   ];
@@ -1487,6 +1497,231 @@ function BankTransferEditModal({ data, form, saving, setForm, onClose, onSubmit 
         <div className="mt-5 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-5 py-3 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
           <button disabled={saving} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">{saving ? 'Saving...' : 'Save Transfer'}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function WalletWithdrawalsPage() {
+  const [data, setData] = useState(null);
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [provider, setProvider] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+
+  const query = useMemo(() => ({ search, status, wallet_provider: provider }), [search, status, provider]);
+
+  async function loadWithdrawals() {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/wallet-withdrawals', { params: query });
+      setData(response.data);
+    } catch (apiError) {
+      setError(apiError.response?.data?.message || 'Could not load wallet withdrawals.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadWithdrawals();
+  }, [query]);
+
+  function openEdit(item) {
+    setEditing(item);
+    setForm({
+      wallet_provider: item.wallet_provider || 'bKash',
+      wallet_number: item.wallet_number || '',
+      account_name: item.account_name || '',
+      contact_number: item.contact_number || '',
+      amount: item.amount || '',
+      charge: item.charge || '0',
+      status: item.status || 'pending',
+      admin_note: item.admin_note || '',
+    });
+    setError('');
+  }
+
+  async function quickStatus(item, nextStatus) {
+    setSaving(true);
+    setError('');
+    try {
+      await api.put(`/admin/wallet-withdrawals/${item.id}`, {
+        wallet_provider: item.wallet_provider,
+        wallet_number: item.wallet_number,
+        account_name: item.account_name || '',
+        contact_number: item.contact_number || '',
+        amount: item.amount,
+        charge: item.charge || '0',
+        status: nextStatus,
+        admin_note: item.admin_note || `Marked as ${nextStatus} by admin.`,
+      });
+      setNotice(`Wallet withdrawal marked as ${nextStatus}.`);
+      await loadWithdrawals();
+    } catch (apiError) {
+      const errors = apiError.response?.data?.errors;
+      setError(errors ? Object.values(errors).flat()[0] : (apiError.response?.data?.message || 'Could not update wallet withdrawal.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveEdit(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      const response = await api.put(`/admin/wallet-withdrawals/${editing.id}`, form);
+      setNotice(response.data.message);
+      setEditing(null);
+      setForm(null);
+      await loadWithdrawals();
+    } catch (apiError) {
+      const errors = apiError.response?.data?.errors;
+      setError(errors ? Object.values(errors).flat()[0] : (apiError.response?.data?.message || 'Could not save wallet withdrawal.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-medium text-slate-950">Wallet Withdrawal Management</h2>
+        <p className="mt-1 text-sm text-slate-500">Process bKash, Nagad and Rocket withdrawal requests, approve payouts and refund failed requests safely.</p>
+      </div>
+
+      {notice ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div> : null}
+      {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {data ? Object.entries(data.stats).map(([key, value]) => (
+          <div key={key} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{key.replace('_', ' ')}</p>
+            <p className="mt-2 text-2xl font-medium">{key === 'volume' ? formatMoney(value) : value}</p>
+          </div>
+        )) : null}
+      </div>
+
+      <Panel title="Wallet Withdrawal Requests">
+        <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_170px_170px]">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4">
+            <Search size={18} className="text-slate-400" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search transaction, wallet, number or email" className="h-12 w-full bg-transparent text-sm outline-none" />
+          </div>
+          <select value={provider} onChange={(event) => setProvider(event.target.value)} className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
+            <option value="">All Wallets</option>
+            {(data?.providers || ['bKash', 'Nagad', 'Rocket']).map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
+            <option value="">All Status</option>
+            {(data?.statuses || []).map((item) => <option key={item} value={item}>{titleCase(item)}</option>)}
+          </select>
+        </div>
+
+        {loading ? <LoadingBlock label="Loading wallet withdrawals..." /> : !data?.wallet_withdrawals ? (
+          <ErrorBlock message="Wallet withdrawals are not available." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1000px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-xs uppercase tracking-[0.16em] text-slate-400">
+                  <th className="py-3">Transaction</th>
+                  <th className="py-3">Customer</th>
+                  <th className="py-3">Wallet</th>
+                  <th className="py-3">Account</th>
+                  <th className="py-3">Total</th>
+                  <th className="py-3">Status</th>
+                  <th className="py-3 text-right">Manage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.wallet_withdrawals.data.map((item) => (
+                  <tr key={item.id} className="border-b border-slate-100">
+                    <td className="py-4">
+                      <p className="font-medium text-slate-900">{item.transaction_id}</p>
+                      <p className="text-xs text-slate-500">{formatDate(item.created_at)}</p>
+                    </td>
+                    <td className="py-4">
+                      <p className="text-slate-900">{item.user?.name || 'App User'}</p>
+                      <p className="text-xs text-slate-500">{item.email}</p>
+                    </td>
+                    <td className="py-4">
+                      <p className="font-medium text-slate-900">{item.wallet_provider}</p>
+                      <p className="text-xs text-slate-500">{item.wallet_number}</p>
+                    </td>
+                    <td className="py-4">
+                      <p className="text-slate-900">{item.account_name || 'Not set'}</p>
+                      <p className="text-xs text-slate-500">{item.contact_number || 'No contact'}</p>
+                    </td>
+                    <td className="py-4 font-medium text-slate-900">{formatMoney(item.total_amount)}</td>
+                    <td className="py-4"><StatusBadge status={item.status} /></td>
+                    <td className="py-4">
+                      <div className="flex justify-end gap-2">
+                        <button disabled={saving} onClick={() => quickStatus(item, 'successful')} className="rounded-xl border border-emerald-200 px-3 py-2 text-xs text-emerald-700 hover:bg-emerald-50">Approve</button>
+                        <button disabled={saving} onClick={() => quickStatus(item, 'failed')} className="rounded-xl border border-red-200 px-3 py-2 text-xs text-red-700 hover:bg-red-50">Fail</button>
+                        <button onClick={() => openEdit(item)} className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"><Edit3 size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+
+      {editing && form ? (
+        <WalletWithdrawalEditModal
+          data={data}
+          form={form}
+          saving={saving}
+          setForm={setForm}
+          onClose={() => { setEditing(null); setForm(null); }}
+          onSubmit={saveEdit}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function WalletWithdrawalEditModal({ data, form, saving, setForm, onClose, onSubmit }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-3 sm:items-center">
+      <form onSubmit={onSubmit} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-red-600">Wallet Withdrawal</p>
+            <h3 className="mt-2 text-xl font-medium text-slate-950">Edit Withdrawal Request</h3>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><X size={18} /></button>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <select value={form.wallet_provider} onChange={(event) => setForm({ ...form, wallet_provider: event.target.value })} className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
+            {(data?.providers || ['bKash', 'Nagad', 'Rocket']).map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <Field label="Wallet Number" value={form.wallet_number} onChange={(wallet_number) => setForm({ ...form, wallet_number })} required />
+          <Field label="Account Name" value={form.account_name} onChange={(account_name) => setForm({ ...form, account_name })} />
+          <Field label="Contact Number" value={form.contact_number} onChange={(contact_number) => setForm({ ...form, contact_number })} />
+          <Field label="Amount" type="number" value={form.amount} onChange={(amount) => setForm({ ...form, amount })} required />
+          <Field label="Charge" type="number" value={form.charge} onChange={(charge) => setForm({ ...form, charge })} />
+          <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
+            {(data?.statuses || []).map((item) => <option key={item} value={item}>{titleCase(item)}</option>)}
+          </select>
+        </div>
+        <label className="mt-4 block">
+          <span className="mb-2 block text-sm font-medium text-slate-700">Admin Note</span>
+          <textarea value={form.admin_note} onChange={(event) => setForm({ ...form, admin_note: event.target.value })} rows="4" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" />
+        </label>
+        <div className="mt-5 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-5 py-3 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button disabled={saving} className="rounded-xl bg-red-600 px-5 py-3 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">{saving ? 'Saving...' : 'Save Withdrawal'}</button>
         </div>
       </form>
     </div>
@@ -2571,6 +2806,124 @@ function ReferralAdminPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function GeneralSettingsPage() {
+  const [form, setForm] = useState({
+    youtube_url: '',
+    telegram_url: '',
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  async function loadSettings() {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.get('/admin/general-settings');
+      setForm({
+        youtube_url: response.data.settings?.youtube_url || '',
+        telegram_url: response.data.settings?.telegram_url || '',
+      });
+    } catch (apiError) {
+      setError(apiError.response?.data?.message || 'Could not load general settings.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveSettings(event) {
+    event.preventDefault();
+    setSaving(true);
+    setNotice('');
+    setError('');
+    try {
+      const response = await api.put('/admin/general-settings', form);
+      setForm({
+        youtube_url: response.data.settings?.youtube_url || '',
+        telegram_url: response.data.settings?.telegram_url || '',
+      });
+      setNotice(response.data.message);
+    } catch (apiError) {
+      const errors = apiError.response?.data?.errors;
+      setError(errors ? Object.values(errors).flat()[0] : (apiError.response?.data?.message || 'Could not save general settings.'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-[14px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+            <Settings size={22} />
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-red-600">App Controls</p>
+            <h2 className="mt-2 text-2xl font-medium text-slate-950">General Settings</h2>
+            <p className="mt-1 text-sm text-slate-500">Control YouTube and Telegram links shown inside the mobile app.</p>
+          </div>
+        </div>
+      </div>
+
+      {notice ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div> : null}
+      {error ? <ErrorBlock message={error} /> : null}
+
+      {loading ? <LoadingBlock label="Loading general settings..." /> : (
+        <form onSubmit={saveSettings}>
+          <Panel title="Social Service Links">
+            <div className="grid gap-4 md:grid-cols-2">
+              <SocialLinkField
+                icon={Youtube}
+                label="YouTube Link"
+                value={form.youtube_url}
+                placeholder="https://youtube.com/@citygoremit"
+                onChange={(youtube_url) => setForm({ ...form, youtube_url })}
+              />
+              <SocialLinkField
+                icon={Send}
+                label="Telegram Link"
+                value={form.telegram_url}
+                placeholder="https://t.me/citygoremit"
+                onChange={(telegram_url) => setForm({ ...form, telegram_url })}
+              />
+            </div>
+            <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+              If a link is empty, the app shows a clean unavailable message instead of opening anything.
+            </p>
+            <button disabled={saving} className="mt-5 rounded-xl bg-red-600 px-6 py-3 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60">
+              {saving ? 'Saving...' : 'Save General Settings'}
+            </button>
+          </Panel>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function SocialLinkField({ icon: Icon, label, value, onChange, placeholder }) {
+  return (
+    <label className="block rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+        <Icon size={18} className="text-red-600" />
+        {label}
+      </span>
+      <input
+        type="url"
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-3 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-red-400"
+      />
+    </label>
   );
 }
 

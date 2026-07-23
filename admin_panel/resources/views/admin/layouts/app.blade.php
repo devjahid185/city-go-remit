@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Admin') | {{ config('app.name', 'City Go Remit') }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/brand/favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@450;500&display=swap" rel="stylesheet">
@@ -67,17 +69,13 @@
             padding: 24px;
         }
         .brand-mark {
-            display: grid;
+            display: block;
             width: 48px;
             height: 48px;
             flex: 0 0 48px;
-            place-items: center;
-            border-radius: 999px;
-            background: var(--primary-strong);
-            color: #92e7c3;
-            font-size: 17px;
-            font-weight: 800;
-            text-transform: lowercase;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 10px 22px rgba(17, 28, 45, .12);
         }
         .sidebar-brand h1 {
             margin: 0;

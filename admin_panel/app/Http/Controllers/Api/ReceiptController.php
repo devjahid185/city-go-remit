@@ -7,6 +7,7 @@ use App\Models\BankTransfer;
 use App\Models\BillPayment;
 use App\Models\DriveOfferOrder;
 use App\Models\MobileRecharge;
+use App\Models\WalletWithdrawal;
 use Illuminate\Http\Request;
 
 class ReceiptController extends Controller
@@ -40,6 +41,7 @@ class ReceiptController extends Controller
             'recharge' => $this->mobileRecharge($transactionId, $email),
             'bill' => $this->billPayment($transactionId, $email),
             'bank_transfer' => $this->bankTransfer($transactionId, $email),
+            'wallet_withdrawal' => $this->walletWithdrawal($transactionId, $email),
             'drive_offer' => $this->driveOffer($transactionId, $email),
             default => null,
         };
@@ -92,6 +94,19 @@ class ReceiptController extends Controller
             'Offer' => $item->offer_title,
             'Mobile Number' => $item->mobile_number,
             'Validity' => $item->validity,
+        ], $item->processed_at ?? $item->updated_at);
+    }
+
+    private function walletWithdrawal(string $transactionId, string $email): ?array
+    {
+        $item = WalletWithdrawal::query()->where('transaction_id', $transactionId)->where('email', $email)->first();
+        if (! $item || $item->status !== 'successful') return null;
+
+        return $this->base('Wallet Withdrawal', $item->transaction_id, $item->email, (float) $item->total_amount, $item->status, [
+            'Wallet' => $item->wallet_provider,
+            'Wallet Number' => $item->wallet_number,
+            'Account Name' => $item->account_name ?: '-',
+            'Contact Number' => $item->contact_number ?: '-',
         ], $item->processed_at ?? $item->updated_at);
     }
 

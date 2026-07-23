@@ -9,7 +9,7 @@ class AuthApi {
   AuthApi({
     this.baseUrl = const String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'https://b523-118-179-116-241.ngrok-free.app/api',
+      defaultValue: 'https://a081-118-179-116-241.ngrok-free.app/api',
     ),
   });
 
@@ -141,6 +141,10 @@ class AuthApi {
 
   Future<ApiResult> exchangeRates() {
     return _get('/exchange-rates', const {});
+  }
+
+  Future<ApiResult> appSettings() {
+    return _get('/settings', const {});
   }
 
   Future<ApiResult> registerNotificationToken({
@@ -277,6 +281,44 @@ class AuthApi {
       'account_name': accountName,
       'account_number': accountNumber,
       'routing_number': routingNumber,
+      'contact_number': contactNumber,
+      'amount': amount,
+      'otp': otp,
+    });
+  }
+
+  Future<ApiResult> requestWalletWithdrawalOtp({
+    required String email,
+    required String walletProvider,
+    required String walletNumber,
+    required String accountName,
+    required String contactNumber,
+    required String amount,
+  }) {
+    return _post('/wallet-withdrawal/request-otp', {
+      'email': email,
+      'wallet_provider': walletProvider,
+      'wallet_number': walletNumber,
+      'account_name': accountName,
+      'contact_number': contactNumber,
+      'amount': amount,
+    });
+  }
+
+  Future<ApiResult> confirmWalletWithdrawal({
+    required String email,
+    required String walletProvider,
+    required String walletNumber,
+    required String accountName,
+    required String contactNumber,
+    required String amount,
+    required String otp,
+  }) {
+    return _post('/wallet-withdrawal/confirm', {
+      'email': email,
+      'wallet_provider': walletProvider,
+      'wallet_number': walletNumber,
+      'account_name': accountName,
       'contact_number': contactNumber,
       'amount': amount,
       'otp': otp,

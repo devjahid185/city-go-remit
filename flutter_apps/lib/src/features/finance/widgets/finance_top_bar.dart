@@ -29,13 +29,19 @@ class FinanceTopBar extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               color: showMenu ? Colors.white.withValues(alpha: .12) : AppColors.financeSurfaceLow,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: showMenu ? Colors.white24 : AppColors.financeLine),
             ),
-            child: Icon(
-              showMenu ? Icons.menu_rounded : Icons.person_rounded,
-              color: foreground,
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: showMenu
+                ? Icon(
+                    Icons.menu_rounded,
+                    color: foreground,
+                  )
+                : Image.asset(
+                    'assets/images/app_logo.png',
+                    fit: BoxFit.cover,
+                  ),
           ),
           const SizedBox(width: 10),
           Text(

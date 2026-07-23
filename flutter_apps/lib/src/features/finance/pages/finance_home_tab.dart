@@ -6,7 +6,6 @@ import 'package:flutter_apps/src/core/app_language.dart';
 import 'package:flutter_apps/src/features/finance/pages/bank_transfer_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/bill_payment_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/drive_offer_page.dart';
-import 'package:flutter_apps/src/features/finance/pages/exchange_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/live_chat_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/mobile_recharge_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/notification_center_page.dart';
@@ -106,17 +105,6 @@ class _FinanceHomeTabState extends State<FinanceHomeTab> {
                 label: AppText.t('drive_offer'),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const DriveOfferPage()),
-                ),
-              ),
-              ServiceTile(
-                icon: Icons.qr_code_scanner_rounded,
-                label: AppText.t('tap_pay'),
-              ),
-              ServiceTile(
-                icon: Icons.currency_exchange_rounded,
-                label: AppText.t('exchange'),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ExchangePage()),
                 ),
               ),
             ],

@@ -106,14 +106,29 @@ class _IntroOnboardingPageState extends State<IntroOnboardingPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'City Go Remit',
-                        style: TextStyle(
-                          color: AppColors.financePrimary,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: -.7,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(9),
+                            child: Image.asset(
+                              'assets/images/app_logo.png',
+                              width: 34,
+                              height: 34,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'City Go Remit',
+                            style: TextStyle(
+                              color: AppColors.financePrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: -.6,
+                            ),
+                          ),
+                        ],
                       ),
                       TextButton(
                         onPressed: _openLogin,

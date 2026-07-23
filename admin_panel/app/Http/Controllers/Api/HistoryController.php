@@ -7,6 +7,7 @@ use App\Models\BankTransfer;
 use App\Models\BillPayment;
 use App\Models\DriveOfferOrder;
 use App\Models\MobileRecharge;
+use App\Models\WalletWithdrawal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -94,6 +95,31 @@ class HistoryController extends Controller
                 ],
             ]);
 
+        $walletWithdrawals = WalletWithdrawal::query()
+            ->where('email', $data['email'])
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn (WalletWithdrawal $withdrawal): array => [
+                'id' => 'wallet-withdrawal-'.$withdrawal->id,
+                'reference' => $withdrawal->transaction_id,
+                'title' => $withdrawal->wallet_provider.' Wallet Withdraw',
+                'subtitle' => $withdrawal->wallet_number,
+                'category' => 'wallet_withdrawal',
+                'direction' => 'out',
+                'amount' => (float) $withdrawal->total_amount,
+                'currency' => 'BDT',
+                'status' => $withdrawal->status,
+                'created_at' => $withdrawal->created_at?->toISOString(),
+                'processed_at' => $withdrawal->processed_at?->toISOString(),
+                'meta' => [
+                    'wallet_provider' => $withdrawal->wallet_provider,
+                    'wallet_number' => $withdrawal->wallet_number,
+                    'account_name' => $withdrawal->account_name,
+                    'admin_note' => $withdrawal->admin_note,
+                ],
+            ]);
+
         $driveOfferOrders = DriveOfferOrder::query()
             ->where('email', $data['email'])
             ->latest()
@@ -123,6 +149,7 @@ class HistoryController extends Controller
         $histories = $recharges
             ->merge($billPayments)
             ->merge($bankTransfers)
+            ->merge($walletWithdrawals)
             ->merge($driveOfferOrders)
             ->sortByDesc('created_at')
             ->values();
@@ -135,6 +162,7 @@ class HistoryController extends Controller
                 'out' => $histories->count(),
                 'recharge' => $recharges->count(),
                 'bank_transfer' => $bankTransfers->count(),
+                'wallet_withdrawal' => $walletWithdrawals->count(),
                 'drive_offer' => $driveOfferOrders->count(),
                 'pending' => $histories->where('status', 'pending')->count(),
             ],

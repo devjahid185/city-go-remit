@@ -1,28 +1,112 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
+import 'package:flutter_apps/src/core/app_language.dart';
 import 'package:flutter_apps/src/features/finance/pages/bank_transfer_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/bill_payment_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/drive_offer_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/exchange_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/mobile_recharge_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/notification_center_page.dart';
+import 'package:flutter_apps/src/features/finance/pages/wallet_withdrawal_page.dart';
 import 'package:flutter_apps/src/features/finance/widgets/finance_top_bar.dart';
 import 'package:flutter_apps/src/features/finance/widgets/service_tile.dart';
+import 'package:flutter_apps/src/services/auth_api.dart';
+import 'package:flutter_apps/src/services/link_launcher.dart';
 
-class FinanceServicesTab extends StatelessWidget {
+class FinanceServicesTab extends StatefulWidget {
   const FinanceServicesTab({super.key});
 
-  static const services = [
-    (Icons.phone_iphone_rounded, 'Mobile\nRecharge'),
-    (Icons.wifi_tethering_rounded, 'Drive\nOffer'),
-    (Icons.receipt_long_rounded, 'Bill\nPayment'),
-    (Icons.account_balance_rounded, 'Bank\nTransfer'),
-    (Icons.savings_rounded, 'Savings'),
-    (Icons.currency_exchange_rounded, 'Exchange'),
-  ];
+  @override
+  State<FinanceServicesTab> createState() => _FinanceServicesTabState();
+}
+
+class _FinanceServicesTabState extends State<FinanceServicesTab> {
+  final _api = AuthApi();
+  String _youtubeUrl = '';
+  String _telegramUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final result = await _api.appSettings();
+    if (!mounted || !result.ok) return;
+    final settings = result.data['settings'] as Map<String, dynamic>? ?? {};
+    setState(() {
+      _youtubeUrl = settings['youtube_url']?.toString() ?? '';
+      _telegramUrl = settings['telegram_url']?.toString() ?? '';
+    });
+  }
+
+  Future<void> _openLink(String url, String label) async {
+    final opened = await const LinkLauncher().open(url);
+    if (opened || !mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppText.t('social_link_unavailable').replaceFirst(':name', label))),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final services = [
+      _ServiceItem(
+        icon: Icons.phone_iphone_rounded,
+        label: AppText.t('mobile_recharge'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MobileRechargePage()),
+        ),
+      ),
+      _ServiceItem(
+        icon: Icons.wifi_tethering_rounded,
+        label: AppText.t('drive_offer'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const DriveOfferPage()),
+        ),
+      ),
+      _ServiceItem(
+        icon: Icons.receipt_long_rounded,
+        label: AppText.t('bill_payment'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const BillPaymentPage()),
+        ),
+      ),
+      _ServiceItem(
+        icon: Icons.account_balance_rounded,
+        label: AppText.t('bank_transfer'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const BankTransferPage()),
+        ),
+      ),
+      _ServiceItem(
+        icon: Icons.account_balance_wallet_rounded,
+        label: AppText.t('wallet_withdrawal'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const WalletWithdrawalPage()),
+        ),
+      ),
+      _ServiceItem(
+        icon: Icons.currency_exchange_rounded,
+        label: AppText.t('exchange'),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const ExchangePage()),
+        ),
+      ),
+      _ServiceItem(
+        icon: Icons.play_circle_fill_rounded,
+        label: AppText.t('youtube'),
+        onTap: () => _openLink(_youtubeUrl, 'YouTube'),
+      ),
+      _ServiceItem(
+        icon: Icons.telegram_rounded,
+        label: AppText.t('telegram'),
+        onTap: () => _openLink(_telegramUrl, 'Telegram'),
+      ),
+    ];
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -34,7 +118,7 @@ class FinanceServicesTab extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: FinanceTopBar(
-              title: 'Services',
+              title: AppText.t('services'),
               showMenu: true,
               onNotificationTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationCenterPage()),
@@ -42,11 +126,11 @@ class FinanceServicesTab extends StatelessWidget {
             ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 26, 20, 14),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
           child: Text(
-            'ALL SERVICES',
-            style: TextStyle(
+            AppText.t('all_services'),
+            style: const TextStyle(
               color: AppColors.financeMuted,
               fontWeight: FontWeight.w500,
               letterSpacing: 1.2,
@@ -65,29 +149,9 @@ class FinanceServicesTab extends StatelessWidget {
             children: [
               for (var index = 0; index < services.length; index++)
                 ServiceTile(
-                  icon: services[index].$1,
-                  label: services[index].$2,
-                  onTap: index == 0
-                      ? () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const MobileRechargePage()),
-                          )
-                      : index == 1
-                          ? () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const DriveOfferPage()),
-                              )
-                          : index == 2
-                          ? () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const BillPaymentPage()),
-                              )
-                          : index == 3
-                              ? () => Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const BankTransferPage()),
-                                  )
-                              : index == 5
-                                  ? () => Navigator.of(context).push(
-                                        MaterialPageRoute(builder: (_) => const ExchangePage()),
-                                      )
-                                  : null,
+                  icon: services[index].icon,
+                  label: services[index].label,
+                  onTap: services[index].onTap,
                 ),
             ],
           ),
@@ -96,4 +160,16 @@ class FinanceServicesTab extends StatelessWidget {
       ],
     );
   }
+}
+
+class _ServiceItem {
+  const _ServiceItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 }

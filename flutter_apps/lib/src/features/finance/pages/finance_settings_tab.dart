@@ -340,27 +340,30 @@ class _LanguageTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = AppLanguageController.current == language;
-    return ListTile(
-      onTap: () => Navigator.of(context).pop(language),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      tileColor: selected
+    return Material(
+      color: selected
           ? AppColors.financePrimary.withValues(alpha: .08)
           : AppColors.financeSurfaceLow,
-      leading: CircleAvatar(
-        backgroundColor: selected ? AppColors.financePrimary : Colors.white,
-        child: Icon(
-          selected ? Icons.check_rounded : Icons.language_rounded,
-          color: selected ? Colors.white : AppColors.financePrimary,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        onTap: () => Navigator.of(context).pop(language),
+        leading: CircleAvatar(
+          backgroundColor: selected ? AppColors.financePrimary : Colors.white,
+          child: Icon(
+            selected ? Icons.check_rounded : Icons.language_rounded,
+            color: selected ? Colors.white : AppColors.financePrimary,
+          ),
         ),
-      ),
-      title: Text(
-        language.nativeName,
-        style: const TextStyle(
-          color: AppColors.ink,
-          fontWeight: FontWeight.w500,
+        title: Text(
+          language.nativeName,
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontWeight: FontWeight.w500,
+          ),
         ),
+        subtitle: Text(language.englishName),
       ),
-      subtitle: Text(language.englishName),
     );
   }
 }
@@ -517,10 +520,11 @@ class _SettingsSection extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: AppColors.financeLine),
+          Material(
+            color: Colors.white,
+            clipBehavior: Clip.antiAlias,
+            shape: RoundedRectangleBorder(
+              side: const BorderSide(color: AppColors.financeLine),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(children: children),

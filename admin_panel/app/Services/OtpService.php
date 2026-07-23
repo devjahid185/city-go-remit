@@ -14,6 +14,7 @@ class OtpService
     public const MOBILE_RECHARGE = 'mobile_recharge';
     public const BILL_PAYMENT = 'bill_payment';
     public const BANK_TRANSFER = 'bank_transfer';
+    public const WALLET_WITHDRAWAL = 'wallet_withdrawal';
     public const DRIVE_OFFER = 'drive_offer';
 
     public function issue(string $email, string $purpose, array $payload = []): void
@@ -38,11 +39,12 @@ class OtpService
             self::MOBILE_RECHARGE => 'Confirm your mobile recharge',
             self::BILL_PAYMENT => 'Confirm your bill payment',
             self::BANK_TRANSFER => 'Confirm your bank transfer',
+            self::WALLET_WITHDRAWAL => 'Confirm your wallet withdrawal',
             self::DRIVE_OFFER => 'Confirm your internet offer',
             default => 'Your password reset OTP',
         };
 
-        if (in_array($purpose, [self::MOBILE_RECHARGE, self::BILL_PAYMENT, self::BANK_TRANSFER, self::DRIVE_OFFER], true)) {
+        if (in_array($purpose, [self::MOBILE_RECHARGE, self::BILL_PAYMENT, self::BANK_TRANSFER, self::WALLET_WITHDRAWAL, self::DRIVE_OFFER], true)) {
             Log::info('Transaction OTP issued.', [
                 'email' => $email,
                 'purpose' => $purpose,
@@ -53,6 +55,8 @@ class OtpService
                 'provider' => $payload['provider'] ?? null,
                 'account_number' => $payload['account_number'] ?? null,
                 'bank_name' => $payload['bank_name'] ?? null,
+                'wallet_provider' => $payload['wallet_provider'] ?? null,
+                'wallet_number' => $payload['wallet_number'] ?? null,
                 'offer_title' => $payload['offer_title'] ?? null,
                 'amount' => $payload['amount'] ?? null,
                 'total_amount' => $payload['total_amount'] ?? null,

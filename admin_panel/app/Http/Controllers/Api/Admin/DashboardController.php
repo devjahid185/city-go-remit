@@ -12,6 +12,7 @@ use App\Models\DriveOfferOrder;
 use App\Models\FirebaseDeviceToken;
 use App\Models\MobileRecharge;
 use App\Models\User;
+use App\Models\WalletWithdrawal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class DashboardController extends Controller
         $hasRecharges = Schema::hasTable('mobile_recharges');
         $hasBills = Schema::hasTable('bill_payments');
         $hasBankTransfers = Schema::hasTable('bank_transfers');
+        $hasWalletWithdrawals = Schema::hasTable('wallet_withdrawals');
         $hasDriveOrders = Schema::hasTable('drive_offer_orders');
         $hasChats = Schema::hasTable('chat_conversations');
         $hasBanners = Schema::hasTable('app_banners');
@@ -34,6 +36,7 @@ class DashboardController extends Controller
             $hasRecharges ? $this->transactionSummary(MobileRecharge::query(), 'amount') : null,
             $hasBills ? $this->transactionSummary(BillPayment::query(), 'total_amount') : null,
             $hasBankTransfers ? $this->transactionSummary(BankTransfer::query(), 'total_amount') : null,
+            $hasWalletWithdrawals ? $this->transactionSummary(WalletWithdrawal::query(), 'total_amount') : null,
             $hasDriveOrders ? $this->transactionSummary(DriveOfferOrder::query(), 'total_amount') : null,
         ])->filter();
 
@@ -65,6 +68,7 @@ class DashboardController extends Controller
                 'mobile_recharge' => $hasRecharges ? $this->transactionSummary(MobileRecharge::query(), 'amount') : $this->emptySummary(),
                 'bill_payment' => $hasBills ? $this->transactionSummary(BillPayment::query(), 'total_amount') : $this->emptySummary(),
                 'bank_transfer' => $hasBankTransfers ? $this->transactionSummary(BankTransfer::query(), 'total_amount') : $this->emptySummary(),
+                'wallet_withdrawal' => $hasWalletWithdrawals ? $this->transactionSummary(WalletWithdrawal::query(), 'total_amount') : $this->emptySummary(),
                 'drive_offer' => $hasDriveOrders ? $this->transactionSummary(DriveOfferOrder::query(), 'total_amount') : $this->emptySummary(),
             ],
             'status_breakdown' => [
@@ -80,6 +84,7 @@ class DashboardController extends Controller
                 'recharges' => $hasRecharges ? MobileRecharge::query()->whereIn('status', ['pending', 'processing'])->count() : 0,
                 'bill_payments' => $hasBills ? BillPayment::query()->whereIn('status', ['pending', 'processing'])->count() : 0,
                 'bank_transfers' => $hasBankTransfers ? BankTransfer::query()->whereIn('status', ['pending', 'processing'])->count() : 0,
+                'wallet_withdrawals' => $hasWalletWithdrawals ? WalletWithdrawal::query()->whereIn('status', ['pending', 'processing'])->count() : 0,
                 'drive_offers' => $hasDriveOrders ? DriveOfferOrder::query()->whereIn('status', ['pending', 'processing'])->count() : 0,
                 'chats' => $hasChats ? ChatConversation::query()->whereIn('status', ['open', 'pending'])->count() : 0,
             ],
@@ -144,6 +149,7 @@ class DashboardController extends Controller
             Schema::hasTable('mobile_recharges') ? MobileRecharge::query()->whereDate('created_at', $date)->count() : 0,
             Schema::hasTable('bill_payments') ? BillPayment::query()->whereDate('created_at', $date)->count() : 0,
             Schema::hasTable('bank_transfers') ? BankTransfer::query()->whereDate('created_at', $date)->count() : 0,
+            Schema::hasTable('wallet_withdrawals') ? WalletWithdrawal::query()->whereDate('created_at', $date)->count() : 0,
             Schema::hasTable('drive_offer_orders') ? DriveOfferOrder::query()->whereDate('created_at', $date)->count() : 0,
         ])->sum();
     }
@@ -154,6 +160,7 @@ class DashboardController extends Controller
             Schema::hasTable('mobile_recharges') ? MobileRecharge::query()->whereDate('created_at', $date)->sum('amount') : 0,
             Schema::hasTable('bill_payments') ? BillPayment::query()->whereDate('created_at', $date)->sum('total_amount') : 0,
             Schema::hasTable('bank_transfers') ? BankTransfer::query()->whereDate('created_at', $date)->sum('total_amount') : 0,
+            Schema::hasTable('wallet_withdrawals') ? WalletWithdrawal::query()->whereDate('created_at', $date)->sum('total_amount') : 0,
             Schema::hasTable('drive_offer_orders') ? DriveOfferOrder::query()->whereDate('created_at', $date)->sum('total_amount') : 0,
         ])->sum();
     }
@@ -164,6 +171,7 @@ class DashboardController extends Controller
             ->merge($this->recentTransactions(MobileRecharge::class, 'mobile_recharges', 'Recharge', 'amount'))
             ->merge($this->recentTransactions(BillPayment::class, 'bill_payments', 'Bill Payment', 'total_amount'))
             ->merge($this->recentTransactions(BankTransfer::class, 'bank_transfers', 'Bank Transfer', 'total_amount'))
+            ->merge($this->recentTransactions(WalletWithdrawal::class, 'wallet_withdrawals', 'Wallet Withdrawal', 'total_amount'))
             ->merge($this->recentTransactions(DriveOfferOrder::class, 'drive_offer_orders', 'Drive Offer', 'total_amount'));
 
         return $items

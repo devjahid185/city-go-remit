@@ -95,7 +95,7 @@ class BeneficiaryController extends Controller
 
     private function types(): array
     {
-        return ['recharge', 'bill', 'bank'];
+        return ['recharge', 'bill', 'bank', 'wallet'];
     }
 
     private function lookup(array $data): array

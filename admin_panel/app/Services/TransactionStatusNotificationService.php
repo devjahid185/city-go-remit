@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AppNotification;
+use Illuminate\Support\Facades\Log;
 
 class TransactionStatusNotificationService
 {
@@ -46,6 +47,18 @@ class TransactionStatusNotificationService
         );
     }
 
+    public function walletWithdrawal(object $withdrawal, string $previousStatus): void
+    {
+        $this->send(
+            $withdrawal,
+            $previousStatus,
+            'Wallet Withdrawal Update',
+            "Your {$withdrawal->wallet_provider} wallet withdrawal",
+            (float) $withdrawal->total_amount,
+            $withdrawal->transaction_id,
+        );
+    }
+
     public function driveOffer(object $order, string $previousStatus): void
     {
         $this->send(
@@ -81,15 +94,27 @@ class TransactionStatusNotificationService
             'data' => $data,
         ]);
 
+        $result = ['success' => 0, 'failed' => 0];
+
         if ($transaction->user_id) {
-            $this->messaging->sendToUser($transaction->user_id, $title, $body, $data);
-
-            return;
+            $result = $this->messaging->sendToUser($transaction->user_id, $title, $body, $data);
         }
 
-        if (! empty($transaction->email)) {
-            $this->messaging->sendToEmail($transaction->email, $title, $body, $data);
+        if (! empty($transaction->email) && ($result['success'] ?? 0) < 1) {
+            $emailResult = $this->messaging->sendToEmail($transaction->email, $title, $body, $data);
+            $result['success'] = (int) ($result['success'] ?? 0) + (int) ($emailResult['success'] ?? 0);
+            $result['failed'] = (int) ($result['failed'] ?? 0) + (int) ($emailResult['failed'] ?? 0);
         }
+
+        Log::info('Transaction status notification dispatched.', [
+            'transaction_id' => $transactionId,
+            'email' => $transaction->email,
+            'user_id' => $transaction->user_id,
+            'status' => $transaction->status,
+            'title' => $title,
+            'push_success' => $result['success'] ?? 0,
+            'push_failed' => $result['failed'] ?? 0,
+        ]);
     }
 
     private function body(string $subject, string $status, float $amount, string $transactionId, ?string $adminNote): string

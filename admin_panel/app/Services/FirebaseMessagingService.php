@@ -34,6 +34,12 @@ class FirebaseMessagingService
             ->where('is_active', true)
             ->pluck('token');
 
+        Log::info('Firebase send to user requested.', [
+            'user_id' => $userId,
+            'token_count' => $tokens->count(),
+            'title' => $title,
+        ]);
+
         return $this->sendToTokens($tokens, $title, $body, $data);
     }
 
@@ -43,6 +49,12 @@ class FirebaseMessagingService
             ->where('email', $email)
             ->where('is_active', true)
             ->pluck('token');
+
+        Log::info('Firebase send to email requested.', [
+            'email' => $email,
+            'token_count' => $tokens->count(),
+            'title' => $title,
+        ]);
 
         return $this->sendToTokens($tokens, $title, $body, $data);
     }
