@@ -9,7 +9,7 @@ class AuthApi {
   AuthApi({
     this.baseUrl = const String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'https://a081-118-179-116-241.ngrok-free.app/api',
+      defaultValue: 'https://c6b1-118-179-116-241.ngrok-free.app/api',
     ),
   });
 
@@ -19,6 +19,13 @@ class AuthApi {
     return _post('/login', {
       'email': email,
       'password': password,
+      'platform': 'android',
+    });
+  }
+
+  Future<ApiResult> googleLogin({required String idToken}) {
+    return _post('/google-login', {
+      'id_token': idToken,
       'platform': 'android',
     });
   }
@@ -133,6 +140,49 @@ class AuthApi {
 
   Future<ApiResult> profile({required String email}) {
     return _get('/profile', {'email': email});
+  }
+
+  Future<ApiResult> updateProfile({
+    required String currentEmail,
+    required String email,
+    required String firstName,
+    required String lastName,
+    required String dateOfBirth,
+    required String fatherName,
+    required String motherName,
+    required String phone,
+    required String address,
+    required String countryName,
+    required String countryCode,
+    required String countryFlag,
+    required String documentName,
+    Uint8List? documentBytes,
+  }) {
+    final payload = {
+      'current_email': currentEmail,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'date_of_birth': dateOfBirth,
+      'father_name': fatherName,
+      'mother_name': motherName,
+      'phone': phone,
+      'address': address,
+      'country_name': countryName,
+      'country_code': countryCode,
+      'country_flag': countryFlag,
+      'government_document_name': documentName,
+    };
+
+    if (documentBytes == null) return _post('/profile/update', payload);
+
+    return _multipart(
+      '/profile/update',
+      payload,
+      fileField: 'government_document',
+      fileName: documentName,
+      fileBytes: documentBytes,
+    );
   }
 
   Future<ApiResult> homeBanners() {

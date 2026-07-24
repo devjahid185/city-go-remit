@@ -4,6 +4,7 @@ import 'package:flutter_apps/src/features/auth/forgot_page.dart';
 import 'package:flutter_apps/src/features/auth/models/geo_location.dart';
 import 'package:flutter_apps/src/features/auth/onboarding_page.dart';
 import 'package:flutter_apps/src/features/home/home_page.dart';
+import 'package:flutter_apps/src/services/api_result.dart';
 import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/google_auth_service.dart';
 import 'package:flutter_apps/src/services/push_notification_service.dart';
@@ -56,26 +57,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = false);
 
     if (result.ok) {
-      final user = result.data['user'] as Map<String, dynamic>? ?? {};
-      final name = user['name']?.toString() ?? 'User';
-      final token = result.data['token']?.toString();
-      await const SessionStore().saveLogin(
-        userName: name,
-        userEmail: user['email']?.toString() ?? '',
-        userPhone: user['phone']?.toString() ?? '',
-        userAddress: user['address']?.toString() ?? '',
-        userBalance: double.tryParse(user['balance']?.toString() ?? '') ?? 0,
-        referralCode: user['referral_code']?.toString() ?? '',
-        referralBonusEarned: double.tryParse(user['referral_bonus_earned']?.toString() ?? '') ?? 0,
-        authToken: token,
-      );
-      await PushNotificationService.instance.registerSavedUserToken();
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => HomePage(name: name),
-        ),
-      );
+      await _saveLoginAndOpenHome(result);
     } else {
       showAppMessage(context, result.message);
     }
@@ -96,17 +78,51 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _continueWithGoogle() async {
     setState(() => _googleLoading = true);
     try {
-      final email = await _googleAuth.signInAndGetEmail();
+      final account = await _googleAuth.signIn();
+      if (!mounted) return;
+
+      if (account == null) {
+        setState(() => _googleLoading = false);
+        return;
+      }
+
+      final result = await _api.googleLogin(idToken: account.idToken);
       if (!mounted) return;
       setState(() => _googleLoading = false);
 
-      if (email == null) return;
-      _startSignup(source: 'google', email: email);
+      if (result.ok) {
+        await _saveLoginAndOpenHome(result);
+      } else {
+        showAppMessage(context, result.message);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _googleLoading = false);
-      showAppMessage(context, 'Google sign-in is not configured yet.');
+      showAppMessage(context, 'Google sign-in setup is incomplete. Please try again later.');
     }
+  }
+
+  Future<void> _saveLoginAndOpenHome(ApiResult result) async {
+    final user = result.data['user'] as Map<String, dynamic>? ?? {};
+    final name = user['name']?.toString() ?? 'User';
+    final token = result.data['token']?.toString();
+    await const SessionStore().saveLogin(
+      userName: name,
+      userEmail: user['email']?.toString() ?? '',
+      userPhone: user['phone']?.toString() ?? '',
+      userAddress: user['address']?.toString() ?? '',
+      userBalance: double.tryParse(user['balance']?.toString() ?? '') ?? 0,
+      referralCode: user['referral_code']?.toString() ?? '',
+      referralBonusEarned: double.tryParse(user['referral_bonus_earned']?.toString() ?? '') ?? 0,
+      authToken: token,
+    );
+    await PushNotificationService.instance.registerSavedUserToken();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => HomePage(name: name),
+      ),
+    );
   }
 
   @override

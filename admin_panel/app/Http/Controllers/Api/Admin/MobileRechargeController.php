@@ -68,24 +68,27 @@ class MobileRechargeController extends Controller
             'mobile_number' => ['required', 'digits:11'],
             'operator' => ['required', Rule::in($this->operators())],
             'amount' => ['required', 'numeric', 'min:10', 'max:50000'],
+            'charge' => ['nullable', 'numeric', 'min:0', 'max:50000'],
             'status' => ['required', Rule::in($this->statuses())],
             'admin_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $previousStatus = $recharge->status;
+        $data['charge'] = $data['charge'] ?? $recharge->charge ?? 0;
+        $data['total_amount'] = (float) $data['amount'] + (float) $data['charge'];
         $data['reviewed_by'] = $request->user()?->id;
 
         DB::transaction(function () use ($recharge, $data, $previousStatus): void {
             if ($data['status'] === 'successful' && ! $recharge->debited_at) {
                 $user = $recharge->user()->lockForUpdate()->first();
 
-                if (! $user || (float) $user->balance < (float) $data['amount']) {
+                if (! $user || (float) $user->balance < (float) $data['total_amount']) {
                     throw ValidationException::withMessages([
                         'balance' => 'User has insufficient balance.',
                     ]);
                 }
 
-                $user->decrement('balance', (float) $data['amount']);
+                $user->decrement('balance', (float) $data['total_amount']);
                 $data['debited_at'] = now();
             }
 
@@ -94,7 +97,7 @@ class MobileRechargeController extends Controller
                 ! in_array($previousStatus, ['refunded', 'failed', 'rejected', 'cancelled'], true) &&
                 in_array($data['status'], ['refunded', 'failed', 'rejected', 'cancelled'], true)
             ) {
-                $recharge->user()?->increment('balance', (float) $recharge->amount);
+                $recharge->user()?->increment('balance', (float) ($recharge->total_amount ?: $recharge->amount));
             }
 
             if (in_array($data['status'], ['successful', 'failed', 'rejected', 'refunded', 'cancelled'], true) && ! $recharge->processed_at) {

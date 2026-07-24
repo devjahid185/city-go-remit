@@ -34,6 +34,22 @@ class AppTheme {
               const BorderSide(color: AppColors.emerald, width: 1.6),
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.financePrimary,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.35,
+        ),
+        actionTextColor: Colors.white,
+        behavior: SnackBarBehavior.floating,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+      ),
     );
   }
 }

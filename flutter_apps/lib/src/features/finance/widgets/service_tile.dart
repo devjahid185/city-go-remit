@@ -21,8 +21,8 @@ class ServiceTile extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 58,
-            height: 58,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border.all(color: AppColors.financeLine),
@@ -35,17 +35,19 @@ class ServiceTile extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(icon, color: AppColors.financePrimary, size: 28),
+            child: Icon(icon, color: AppColors.financePrimary, size: 25),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 5),
           Text(
             label,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF191C1E),
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: FontWeight.w500,
-              height: 1.15,
+              height: 1.08,
             ),
           ),
         ],

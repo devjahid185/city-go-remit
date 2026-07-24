@@ -188,7 +188,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please upload a passport or government document.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.financePrimary,
           behavior: SnackBarBehavior.floating,
         ),
       );

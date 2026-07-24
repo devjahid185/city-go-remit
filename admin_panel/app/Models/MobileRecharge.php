@@ -13,6 +13,8 @@ class MobileRecharge extends Model
         'mobile_number',
         'operator',
         'amount',
+        'charge',
+        'total_amount',
         'transaction_id',
         'status',
         'reviewed_by',
@@ -25,6 +27,8 @@ class MobileRecharge extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'charge' => 'decimal:2',
+            'total_amount' => 'decimal:2',
             'debited_at' => 'datetime',
             'processed_at' => 'datetime',
         ];

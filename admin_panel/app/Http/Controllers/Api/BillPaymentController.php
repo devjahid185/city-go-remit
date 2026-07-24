@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BillPayment;
 use App\Models\OtpVerification;
 use App\Models\User;
+use App\Services\AppServiceSettings;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,16 +16,29 @@ use Illuminate\Validation\Rule;
 
 class BillPaymentController extends Controller
 {
-    public function requestOtp(Request $request, OtpService $otpService): JsonResponse
+    public function requestOtp(Request $request, OtpService $otpService, AppServiceSettings $settings): JsonResponse
     {
         $data = $this->validatedBillData($request);
+
+        if ($settings->maintenanceEnabled()) {
+            return response()->json(['message' => 'City Go Remit is under maintenance. Please try again later.'], 503);
+        }
+
+        if (! $settings->serviceEnabled(AppServiceSettings::BILL_PAYMENT)) {
+            return response()->json(['message' => 'Bill payment is temporarily unavailable.'], 422);
+        }
+
+        if ($message = $settings->amountLimitMessage(AppServiceSettings::BILL_PAYMENT, (float) $data['amount'])) {
+            return response()->json(['message' => $message], 422);
+        }
+
         $user = $this->activeUser($data['email']);
 
         if (! $user) {
             return response()->json(['message' => 'Active user account was not found.'], 422);
         }
 
-        $data['charge'] = $this->calculateCharge($data['category'], (float) $data['amount']);
+        $data['charge'] = $settings->charge(AppServiceSettings::BILL_PAYMENT);
         $data['total_amount'] = (float) $data['amount'] + $data['charge'];
 
         if ((float) $user->balance < (float) $data['total_amount']) {
@@ -126,7 +140,7 @@ class BillPaymentController extends Controller
             'account_number' => ['required', 'string', 'max:80'],
             'contact_number' => ['nullable', 'string', 'max:30'],
             'billing_period' => ['nullable', 'string', 'max:30'],
-            'amount' => ['required', 'numeric', 'min:10', 'max:500000'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999'],
         ]);
     }
 
@@ -136,15 +150,6 @@ class BillPaymentController extends Controller
             ->where('email', $email)
             ->where('status', 'active')
             ->first();
-    }
-
-    private function calculateCharge(string $category, float $amount): float
-    {
-        if (in_array($category, ['internet', 'tv', 'education', 'donation'], true)) {
-            return 0;
-        }
-
-        return min(round($amount * 0.01, 2), 30);
     }
 
     private function categories(): array

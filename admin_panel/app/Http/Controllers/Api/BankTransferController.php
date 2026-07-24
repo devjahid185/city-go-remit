@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BankTransfer;
 use App\Models\OtpVerification;
 use App\Models\User;
+use App\Services\AppServiceSettings;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,16 +17,29 @@ use Illuminate\Validation\ValidationException;
 
 class BankTransferController extends Controller
 {
-    public function requestOtp(Request $request, OtpService $otpService): JsonResponse
+    public function requestOtp(Request $request, OtpService $otpService, AppServiceSettings $settings): JsonResponse
     {
         $data = $this->validatedTransferData($request);
+
+        if ($settings->maintenanceEnabled()) {
+            return response()->json(['message' => 'City Go Remit is under maintenance. Please try again later.'], 503);
+        }
+
+        if (! $settings->serviceEnabled(AppServiceSettings::BANK_TRANSFER)) {
+            return response()->json(['message' => 'Bank transfer is temporarily unavailable.'], 422);
+        }
+
+        if ($message = $settings->amountLimitMessage(AppServiceSettings::BANK_TRANSFER, (float) $data['amount'])) {
+            return response()->json(['message' => $message], 422);
+        }
+
         $user = $this->activeUser($data['email']);
 
         if (! $user) {
             return response()->json(['message' => 'Active user account was not found.'], 422);
         }
 
-        $data['charge'] = $this->calculateCharge((float) $data['amount']);
+        $data['charge'] = $settings->charge(AppServiceSettings::BANK_TRANSFER);
         $data['total_amount'] = (float) $data['amount'] + $data['charge'];
 
         if ((float) $user->balance < (float) $data['total_amount']) {
@@ -125,7 +139,7 @@ class BankTransferController extends Controller
             'account_number' => ['required', 'string', 'min:6', 'max:30'],
             'routing_number' => ['nullable', 'string', 'max:20'],
             'contact_number' => ['nullable', 'string', 'max:30'],
-            'amount' => ['required', 'numeric', 'min:100', 'max:500000'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999'],
         ]);
     }
 
@@ -135,11 +149,6 @@ class BankTransferController extends Controller
             ->where('email', $email)
             ->where('status', 'active')
             ->first();
-    }
-
-    private function calculateCharge(float $amount): float
-    {
-        return min(round($amount * 0.005, 2), 50);
     }
 
     private function payload(BankTransfer $transfer): array

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
 import 'package:flutter_apps/src/core/app_language.dart';
+import 'package:flutter_apps/src/services/app_runtime_settings.dart';
 import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
 import 'package:flutter_apps/src/shared/utils/snackbars.dart';
@@ -40,6 +41,7 @@ class _BankTransferPageState extends State<BankTransferPage> {
   }
 
   Future<void> _loadSession() async {
+    await AppRuntimeSettings.instance.load();
     final session = await const SessionStore().load();
     if (!mounted) return;
     setState(() {
@@ -309,9 +311,7 @@ class _BankTransferPageState extends State<BankTransferPage> {
   String? _amountValidator(String? value) {
     final amount = num.tryParse(value?.trim() ?? '');
     if (amount == null) return AppText.t('invalid_amount');
-    if (amount < 100) return AppText.t('min_bank_transfer');
-    if (amount > 500000) return AppText.t('max_bill_payment');
-    return null;
+    return AppRuntimeSettings.instance.amountError('bank_transfer', amount.toDouble());
   }
 
   String? _otpValidator(String? value) {

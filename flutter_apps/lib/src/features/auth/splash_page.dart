@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
+import 'package:flutter_apps/src/features/auth/account_blocked_page.dart';
 import 'package:flutter_apps/src/features/auth/intro_onboarding_page.dart';
 import 'package:flutter_apps/src/features/auth/login_page.dart';
+import 'package:flutter_apps/src/features/auth/maintenance_page.dart';
 import 'package:flutter_apps/src/features/home/home_page.dart';
+import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/location_service.dart';
 import 'package:flutter_apps/src/services/push_notification_service.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
@@ -15,6 +18,8 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
+  final _api = AuthApi();
+
   @override
   void initState() {
     super.initState();
@@ -23,10 +28,30 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _bootstrap() async {
     final session = await const SessionStore().load();
+    final settingsResult = await _api.appSettings();
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
 
+    if (_maintenanceEnabled(settingsResult.data)) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MaintenancePage()),
+      );
+      return;
+    }
+
     if (session.loggedIn) {
+      final profileResult = await _api.profile(email: session.userEmail);
+      if (!mounted) return;
+
+      if (_accountBanned(profileResult.data)) {
+        await const SessionStore().signOut();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AccountBlockedPage()),
+        );
+        return;
+      }
+
       await PushNotificationService.instance.registerSavedUserToken();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -48,6 +73,16 @@ class _SplashPageState extends State<SplashPage> {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => IntroOnboardingPage(location: location)),
     );
+  }
+
+  bool _maintenanceEnabled(Map<String, dynamic> data) {
+    final settings = data['settings'] as Map<String, dynamic>? ?? {};
+    return settings['maintenance_mode'] == true;
+  }
+
+  bool _accountBanned(Map<String, dynamic> data) {
+    final user = data['user'] as Map<String, dynamic>? ?? {};
+    return data['account_banned'] == true || user['status'] == 'banned';
   }
 
   @override

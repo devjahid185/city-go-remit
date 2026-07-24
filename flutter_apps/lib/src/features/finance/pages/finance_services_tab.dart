@@ -24,6 +24,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
   final _api = AuthApi();
   String _youtubeUrl = '';
   String _telegramUrl = '';
+  Map<String, dynamic> _serviceSettings = {};
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
     setState(() {
       _youtubeUrl = settings['youtube_url']?.toString() ?? '';
       _telegramUrl = settings['telegram_url']?.toString() ?? '';
+      _serviceSettings = settings['services'] as Map<String, dynamic>? ?? {};
     });
   }
 
@@ -54,6 +56,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
   Widget build(BuildContext context) {
     final services = [
       _ServiceItem(
+        key: 'mobile_recharge',
         icon: Icons.phone_iphone_rounded,
         label: AppText.t('mobile_recharge'),
         onTap: () => Navigator.of(context).push(
@@ -61,6 +64,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
         ),
       ),
       _ServiceItem(
+        key: 'drive_offer',
         icon: Icons.wifi_tethering_rounded,
         label: AppText.t('drive_offer'),
         onTap: () => Navigator.of(context).push(
@@ -68,6 +72,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
         ),
       ),
       _ServiceItem(
+        key: 'bill_payment',
         icon: Icons.receipt_long_rounded,
         label: AppText.t('bill_payment'),
         onTap: () => Navigator.of(context).push(
@@ -75,6 +80,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
         ),
       ),
       _ServiceItem(
+        key: 'bank_transfer',
         icon: Icons.account_balance_rounded,
         label: AppText.t('bank_transfer'),
         onTap: () => Navigator.of(context).push(
@@ -82,6 +88,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
         ),
       ),
       _ServiceItem(
+        key: 'wallet_withdrawal',
         icon: Icons.account_balance_wallet_rounded,
         label: AppText.t('wallet_withdrawal'),
         onTap: () => Navigator.of(context).push(
@@ -89,6 +96,7 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
         ),
       ),
       _ServiceItem(
+        key: 'exchange',
         icon: Icons.currency_exchange_rounded,
         label: AppText.t('exchange'),
         onTap: () => Navigator.of(context).push(
@@ -96,16 +104,18 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
         ),
       ),
       _ServiceItem(
+        key: 'youtube',
         icon: Icons.play_circle_fill_rounded,
         label: AppText.t('youtube'),
         onTap: () => _openLink(_youtubeUrl, 'YouTube'),
       ),
       _ServiceItem(
+        key: 'telegram',
         icon: Icons.telegram_rounded,
         label: AppText.t('telegram'),
         onTap: () => _openLink(_telegramUrl, 'Telegram'),
       ),
-    ];
+    ].where((service) => _serviceEnabled(service.key)).toList();
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -160,15 +170,25 @@ class _FinanceServicesTabState extends State<FinanceServicesTab> {
       ],
     );
   }
+
+  bool _serviceEnabled(String key) {
+    final item = _serviceSettings[key];
+    if (item is Map<String, dynamic>) {
+      return item['enabled'] != false;
+    }
+    return true;
+  }
 }
 
 class _ServiceItem {
   const _ServiceItem({
+    required this.key,
     required this.icon,
     required this.label,
     required this.onTap,
   });
 
+  final String key;
   final IconData icon;
   final String label;
   final VoidCallback onTap;

@@ -140,12 +140,11 @@ class PushNotificationService {
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.white,
-          elevation: 8,
+          backgroundColor: AppColors.financePrimary,
+          elevation: 0,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: const BorderSide(color: AppColors.financeLine),
+            borderRadius: BorderRadius.circular(10),
           ),
           duration: const Duration(seconds: 5),
           content: Row(
@@ -154,12 +153,12 @@ class PushNotificationService {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.financePrimary.withValues(alpha: .10),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.notifications_active_rounded,
-                  color: AppColors.financePrimary,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(width: 12),
@@ -173,7 +172,7 @@ class PushNotificationService {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: AppColors.ink,
+                        color: Colors.white,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -184,7 +183,7 @@ class PushNotificationService {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: AppColors.financeMuted,
+                          color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),

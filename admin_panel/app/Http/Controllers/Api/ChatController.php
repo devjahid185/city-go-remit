@@ -16,6 +16,9 @@ class ChatController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email']]);
         $conversation = $this->conversationForEmail($data['email']);
+        if ($response = $this->blockedChatResponse($conversation)) {
+            return $response;
+        }
 
         $this->markSeen($conversation, 'user');
 
@@ -35,6 +38,9 @@ class ChatController extends Controller
         ]);
 
         $conversation = $this->conversationForEmail($data['email']);
+        if ($response = $this->blockedChatResponse($conversation)) {
+            return $response;
+        }
 
         $attachment = $this->storeAttachment($request);
 
@@ -65,6 +71,9 @@ class ChatController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email']]);
         $conversation = $this->conversationForEmail($data['email']);
+        if ($response = $this->blockedChatResponse($conversation)) {
+            return $response;
+        }
         $conversation->update(['user_typing_at' => now()]);
 
         return response()->json(['message' => 'Typing status updated.']);
@@ -74,6 +83,9 @@ class ChatController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email']]);
         $conversation = $this->conversationForEmail($data['email']);
+        if ($response = $this->blockedChatResponse($conversation)) {
+            return $response;
+        }
         $this->markSeen($conversation, 'user');
 
         return response()->json(['message' => 'Messages marked as seen.']);
@@ -106,6 +118,31 @@ class ChatController extends Controller
                 'last_message_at' => now(),
             ],
         );
+    }
+
+    private function blockedChatResponse(ChatConversation $conversation): ?JsonResponse
+    {
+        $user = $conversation->user ?: User::query()->where('email', $conversation->email)->first();
+
+        if (! $user) {
+            return null;
+        }
+
+        if ($user->isBanned()) {
+            return response()->json([
+                'message' => 'Your account has been banned. Please contact support.',
+                'account_banned' => true,
+            ], 403);
+        }
+
+        if ($user->isChatBanned()) {
+            return response()->json([
+                'message' => 'Live chat is temporarily unavailable for your account.',
+                'chat_banned' => true,
+            ], 403);
+        }
+
+        return null;
     }
 
     private function markSeen(ChatConversation $conversation, string $viewer): void

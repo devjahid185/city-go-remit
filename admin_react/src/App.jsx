@@ -60,6 +60,8 @@ const emptyForm = {
   balance: '0',
   status: 'active',
   is_admin: false,
+  chat_banned: false,
+  ban_reason: '',
   password: '',
   password_confirmation: '',
 };
@@ -843,6 +845,7 @@ function RechargesPage() {
       mobile_number: recharge.mobile_number || '',
       operator: recharge.operator || 'Grameenphone',
       amount: recharge.amount || '',
+      charge: recharge.charge || '0',
       status: recharge.status || 'pending',
       admin_note: recharge.admin_note || '',
     });
@@ -860,6 +863,7 @@ function RechargesPage() {
         mobile_number: recharge.mobile_number,
         operator: recharge.operator,
         amount: recharge.amount,
+        charge: recharge.charge || '0',
         status: nextStatus,
         admin_note: recharge.admin_note || `Marked as ${nextStatus} by admin.`,
       });
@@ -945,7 +949,7 @@ function RechargesPage() {
                     <th className="py-3">Customer</th>
                     <th className="py-3">Mobile</th>
                     <th className="py-3">Operator</th>
-                    <th className="py-3">Amount</th>
+                    <th className="py-3">Total</th>
                     <th className="py-3">Status</th>
                     <th className="py-3 text-right">Manage</th>
                   </tr>
@@ -963,7 +967,10 @@ function RechargesPage() {
                       </td>
                       <td className="py-4 text-slate-600">{recharge.mobile_number}</td>
                       <td className="py-4 text-slate-600">{recharge.operator}</td>
-                      <td className="py-4 font-medium text-slate-900">{formatMoney(recharge.amount)}</td>
+                      <td className="py-4">
+                        <p className="font-medium text-slate-900">{formatMoney(recharge.total_amount || recharge.amount)}</p>
+                        <p className="text-xs text-slate-500">Charge {formatMoney(recharge.charge || 0)}</p>
+                      </td>
                       <td className="py-4"><StatusBadge status={recharge.status} /></td>
                       <td className="py-4">
                         <div className="flex justify-end gap-2">
@@ -1021,6 +1028,7 @@ function EditRechargeModal({ data, editing, form, saving, setForm, onClose, onSu
             </select>
           </label>
           <Field label="Amount" type="number" value={form.amount} onChange={(amount) => setForm({ ...form, amount })} required />
+          <Field label="Charge" type="number" value={form.charge} onChange={(charge) => setForm({ ...form, charge })} />
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-700">Status</span>
             <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
@@ -1925,6 +1933,17 @@ function ChatSupportPage() {
     }
   }
 
+  async function toggleChatBan() {
+    if (!active?.id) return;
+    try {
+      const response = await api.put(`/admin/chats/${active.id}`, { chat_banned: !active.chat_banned });
+      setActive(response.data.conversation);
+      await loadConversations(true);
+    } catch (apiError) {
+      setError(apiError.response?.data?.message || 'Could not update chat access.');
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="overflow-hidden rounded-[16px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
@@ -2003,9 +2022,15 @@ function ChatSupportPage() {
                   <p className="text-sm text-slate-500">{active.email} {active.user_phone ? `· ${active.user_phone}` : ''}</p>
                   {active.user_typing ? <div className="mt-1"><TypingDots label="User is typing" compact /></div> : null}
                 </div>
-                <select value={active.status} onChange={(event) => changeStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
-                  {(data?.statuses || ['open', 'pending', 'resolved', 'closed']).map((item) => <option key={item} value={item}>{titleCase(item)}</option>)}
-                </select>
+                <div className="flex flex-wrap items-center gap-2">
+                  {active.chat_banned ? <StatusBadge status="chat banned" /> : null}
+                  <button onClick={toggleChatBan} className="h-11 rounded-xl border border-amber-200 bg-white px-4 text-sm text-amber-700 hover:bg-amber-50">
+                    {active.chat_banned ? 'Chat Unban' : 'Chat Ban'}
+                  </button>
+                  <select value={active.status} onChange={(event) => changeStatus(event.target.value)} className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none">
+                    {(data?.statuses || ['open', 'pending', 'resolved', 'closed']).map((item) => <option key={item} value={item}>{titleCase(item)}</option>)}
+                  </select>
+                </div>
                 <button onClick={() => setChatOpen(false)} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-100">
                   <X size={18} />
                 </button>
@@ -2297,6 +2322,23 @@ function UsersPage() {
     loadUsers();
   }
 
+  async function updateUserAccess(user, updates) {
+    const payload = {
+      ...user,
+      chat_banned: Boolean(user.chat_banned_at),
+      ...updates,
+      password: '',
+      password_confirmation: '',
+    };
+    delete payload.created_at;
+    delete payload.updated_at;
+    delete payload.email_verified_at;
+    delete payload.chat_banned_at;
+    await api.put(`/admin/users/${user.id}`, payload);
+    setNotice('User access updated successfully.');
+    loadUsers();
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 rounded-[14px] border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -2331,6 +2373,7 @@ function UsersPage() {
             <option value="active">Active</option>
             <option value="pending">Pending</option>
             <option value="inactive">Inactive</option>
+            <option value="banned">Banned</option>
           </select>
         </div>
 
@@ -2362,6 +2405,12 @@ function UsersPage() {
                     <td className="py-4"><StatusBadge status={user.status} /></td>
                     <td className="py-4">
                       <div className="flex justify-end gap-2">
+                        <button onClick={() => updateUserAccess(user, { status: user.status === 'banned' ? 'active' : 'banned' })} className="rounded-xl border border-amber-200 px-3 py-2 text-xs text-amber-700 hover:bg-amber-50">
+                          {user.status === 'banned' ? 'Unban' : 'Ban'}
+                        </button>
+                        <button onClick={() => updateUserAccess(user, { chat_banned: !Boolean(user.chat_banned_at) })} className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50">
+                          {user.chat_banned_at ? 'Chat Unban' : 'Chat Ban'}
+                        </button>
                         <button onClick={() => openEdit(user)} className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"><Edit3 size={16} /></button>
                         <button onClick={() => removeUser(user)} className="rounded-xl border border-red-200 p-2 text-red-600 hover:bg-red-50"><Trash2 size={16} /></button>
                       </div>
@@ -2385,7 +2434,7 @@ function UsersPage() {
 }
 
 function UserFormModal({ user, onBack, onSaved }) {
-  const [form, setForm] = useState(() => user ? { ...emptyForm, ...user, password: '', password_confirmation: '' } : emptyForm);
+  const [form, setForm] = useState(() => user ? { ...emptyForm, ...user, chat_banned: Boolean(user.chat_banned_at), password: '', password_confirmation: '' } : emptyForm);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -2455,12 +2504,18 @@ function UserFormModal({ user, onBack, onSaved }) {
                 <option value="active">Active</option>
                 <option value="pending">Pending</option>
                 <option value="inactive">Inactive</option>
+                <option value="banned">Banned</option>
               </select>
             </label>
             <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
               <input type="checkbox" checked={Boolean(form.is_admin)} onChange={(event) => setForm({ ...form, is_admin: event.target.checked })} />
               <span className="text-sm text-slate-700">Allow admin access</span>
             </label>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <input type="checkbox" checked={Boolean(form.chat_banned)} onChange={(event) => setForm({ ...form, chat_banned: event.target.checked })} />
+              <span className="text-sm text-slate-700">Ban from live chat only</span>
+            </label>
+            <Field label="Ban Reason" value={form.ban_reason || ''} onChange={(ban_reason) => setForm({ ...form, ban_reason })} />
           </div>
         </div>
 
@@ -2813,6 +2868,26 @@ function GeneralSettingsPage() {
   const [form, setForm] = useState({
     youtube_url: '',
     telegram_url: '',
+    maintenance_mode: false,
+    add_money_enabled: true,
+    add_money_min_amount: '10',
+    add_money_max_amount: '500000',
+    mobile_recharge_enabled: true,
+    mobile_recharge_charge: '0',
+    mobile_recharge_min_amount: '10',
+    mobile_recharge_max_amount: '50000',
+    bill_payment_enabled: true,
+    bill_payment_charge: '0',
+    bill_payment_min_amount: '10',
+    bill_payment_max_amount: '500000',
+    bank_transfer_enabled: true,
+    bank_transfer_charge: '0',
+    bank_transfer_min_amount: '100',
+    bank_transfer_max_amount: '500000',
+    wallet_withdrawal_enabled: true,
+    wallet_withdrawal_charge: '0',
+    wallet_withdrawal_min_amount: '50',
+    wallet_withdrawal_max_amount: '500000',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -2831,6 +2906,26 @@ function GeneralSettingsPage() {
       setForm({
         youtube_url: response.data.settings?.youtube_url || '',
         telegram_url: response.data.settings?.telegram_url || '',
+        maintenance_mode: Boolean(response.data.settings?.maintenance_mode),
+        add_money_enabled: response.data.settings?.add_money_enabled !== false,
+        add_money_min_amount: response.data.settings?.add_money_min_amount?.toString() || '10',
+        add_money_max_amount: response.data.settings?.add_money_max_amount?.toString() || '500000',
+        mobile_recharge_enabled: response.data.settings?.mobile_recharge_enabled !== false,
+        mobile_recharge_charge: response.data.settings?.mobile_recharge_charge?.toString() || '0',
+        mobile_recharge_min_amount: response.data.settings?.mobile_recharge_min_amount?.toString() || '10',
+        mobile_recharge_max_amount: response.data.settings?.mobile_recharge_max_amount?.toString() || '50000',
+        bill_payment_enabled: response.data.settings?.bill_payment_enabled !== false,
+        bill_payment_charge: response.data.settings?.bill_payment_charge?.toString() || '0',
+        bill_payment_min_amount: response.data.settings?.bill_payment_min_amount?.toString() || '10',
+        bill_payment_max_amount: response.data.settings?.bill_payment_max_amount?.toString() || '500000',
+        bank_transfer_enabled: response.data.settings?.bank_transfer_enabled !== false,
+        bank_transfer_charge: response.data.settings?.bank_transfer_charge?.toString() || '0',
+        bank_transfer_min_amount: response.data.settings?.bank_transfer_min_amount?.toString() || '100',
+        bank_transfer_max_amount: response.data.settings?.bank_transfer_max_amount?.toString() || '500000',
+        wallet_withdrawal_enabled: response.data.settings?.wallet_withdrawal_enabled !== false,
+        wallet_withdrawal_charge: response.data.settings?.wallet_withdrawal_charge?.toString() || '0',
+        wallet_withdrawal_min_amount: response.data.settings?.wallet_withdrawal_min_amount?.toString() || '50',
+        wallet_withdrawal_max_amount: response.data.settings?.wallet_withdrawal_max_amount?.toString() || '500000',
       });
     } catch (apiError) {
       setError(apiError.response?.data?.message || 'Could not load general settings.');
@@ -2849,6 +2944,26 @@ function GeneralSettingsPage() {
       setForm({
         youtube_url: response.data.settings?.youtube_url || '',
         telegram_url: response.data.settings?.telegram_url || '',
+        maintenance_mode: Boolean(response.data.settings?.maintenance_mode),
+        add_money_enabled: response.data.settings?.add_money_enabled !== false,
+        add_money_min_amount: response.data.settings?.add_money_min_amount?.toString() || '10',
+        add_money_max_amount: response.data.settings?.add_money_max_amount?.toString() || '500000',
+        mobile_recharge_enabled: response.data.settings?.mobile_recharge_enabled !== false,
+        mobile_recharge_charge: response.data.settings?.mobile_recharge_charge?.toString() || '0',
+        mobile_recharge_min_amount: response.data.settings?.mobile_recharge_min_amount?.toString() || '10',
+        mobile_recharge_max_amount: response.data.settings?.mobile_recharge_max_amount?.toString() || '50000',
+        bill_payment_enabled: response.data.settings?.bill_payment_enabled !== false,
+        bill_payment_charge: response.data.settings?.bill_payment_charge?.toString() || '0',
+        bill_payment_min_amount: response.data.settings?.bill_payment_min_amount?.toString() || '10',
+        bill_payment_max_amount: response.data.settings?.bill_payment_max_amount?.toString() || '500000',
+        bank_transfer_enabled: response.data.settings?.bank_transfer_enabled !== false,
+        bank_transfer_charge: response.data.settings?.bank_transfer_charge?.toString() || '0',
+        bank_transfer_min_amount: response.data.settings?.bank_transfer_min_amount?.toString() || '100',
+        bank_transfer_max_amount: response.data.settings?.bank_transfer_max_amount?.toString() || '500000',
+        wallet_withdrawal_enabled: response.data.settings?.wallet_withdrawal_enabled !== false,
+        wallet_withdrawal_charge: response.data.settings?.wallet_withdrawal_charge?.toString() || '0',
+        wallet_withdrawal_min_amount: response.data.settings?.wallet_withdrawal_min_amount?.toString() || '50',
+        wallet_withdrawal_max_amount: response.data.settings?.wallet_withdrawal_max_amount?.toString() || '500000',
       });
       setNotice(response.data.message);
     } catch (apiError) {
@@ -2869,7 +2984,7 @@ function GeneralSettingsPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-red-600">App Controls</p>
             <h2 className="mt-2 text-2xl font-medium text-slate-950">General Settings</h2>
-            <p className="mt-1 text-sm text-slate-500">Control YouTube and Telegram links shown inside the mobile app.</p>
+            <p className="mt-1 text-sm text-slate-500">Control app availability, service charges and social links.</p>
           </div>
         </div>
       </div>
@@ -2879,6 +2994,85 @@ function GeneralSettingsPage() {
 
       {loading ? <LoadingBlock label="Loading general settings..." /> : (
         <form onSubmit={saveSettings}>
+          <Panel title="Maintenance Mode">
+            <label className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">Maintenance Mode</p>
+                <p className="mt-1 text-sm text-slate-500">When enabled, app transaction requests are blocked safely.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={form.maintenance_mode}
+                onChange={(event) => setForm({ ...form, maintenance_mode: event.target.checked })}
+                className="h-5 w-5 accent-red-600"
+              />
+            </label>
+          </Panel>
+
+          <Panel title="Service Availability & Charges">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ServiceControlField
+                title="Add Money"
+                enabled={form.add_money_enabled}
+                charge="0"
+                minAmount={form.add_money_min_amount}
+                maxAmount={form.add_money_max_amount}
+                hideCharge
+                onEnabledChange={(add_money_enabled) => setForm({ ...form, add_money_enabled })}
+                onChargeChange={() => {}}
+                onMinChange={(add_money_min_amount) => setForm({ ...form, add_money_min_amount })}
+                onMaxChange={(add_money_max_amount) => setForm({ ...form, add_money_max_amount })}
+              />
+              <ServiceControlField
+                title="Mobile Recharge"
+                enabled={form.mobile_recharge_enabled}
+                charge={form.mobile_recharge_charge}
+                minAmount={form.mobile_recharge_min_amount}
+                maxAmount={form.mobile_recharge_max_amount}
+                onEnabledChange={(mobile_recharge_enabled) => setForm({ ...form, mobile_recharge_enabled })}
+                onChargeChange={(mobile_recharge_charge) => setForm({ ...form, mobile_recharge_charge })}
+                onMinChange={(mobile_recharge_min_amount) => setForm({ ...form, mobile_recharge_min_amount })}
+                onMaxChange={(mobile_recharge_max_amount) => setForm({ ...form, mobile_recharge_max_amount })}
+              />
+              <ServiceControlField
+                title="Bill Payment"
+                enabled={form.bill_payment_enabled}
+                charge={form.bill_payment_charge}
+                minAmount={form.bill_payment_min_amount}
+                maxAmount={form.bill_payment_max_amount}
+                onEnabledChange={(bill_payment_enabled) => setForm({ ...form, bill_payment_enabled })}
+                onChargeChange={(bill_payment_charge) => setForm({ ...form, bill_payment_charge })}
+                onMinChange={(bill_payment_min_amount) => setForm({ ...form, bill_payment_min_amount })}
+                onMaxChange={(bill_payment_max_amount) => setForm({ ...form, bill_payment_max_amount })}
+              />
+              <ServiceControlField
+                title="Bank Transfer"
+                enabled={form.bank_transfer_enabled}
+                charge={form.bank_transfer_charge}
+                minAmount={form.bank_transfer_min_amount}
+                maxAmount={form.bank_transfer_max_amount}
+                onEnabledChange={(bank_transfer_enabled) => setForm({ ...form, bank_transfer_enabled })}
+                onChargeChange={(bank_transfer_charge) => setForm({ ...form, bank_transfer_charge })}
+                onMinChange={(bank_transfer_min_amount) => setForm({ ...form, bank_transfer_min_amount })}
+                onMaxChange={(bank_transfer_max_amount) => setForm({ ...form, bank_transfer_max_amount })}
+              />
+              <ServiceControlField
+                title="Wallet Withdrawal"
+                enabled={form.wallet_withdrawal_enabled}
+                charge={form.wallet_withdrawal_charge}
+                minAmount={form.wallet_withdrawal_min_amount}
+                maxAmount={form.wallet_withdrawal_max_amount}
+                onEnabledChange={(wallet_withdrawal_enabled) => setForm({ ...form, wallet_withdrawal_enabled })}
+                onChargeChange={(wallet_withdrawal_charge) => setForm({ ...form, wallet_withdrawal_charge })}
+                onMinChange={(wallet_withdrawal_min_amount) => setForm({ ...form, wallet_withdrawal_min_amount })}
+                onMaxChange={(wallet_withdrawal_max_amount) => setForm({ ...form, wallet_withdrawal_max_amount })}
+              />
+            </div>
+            <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+              Default charge is BDT 0. Set any charge amount or turn a service off anytime.
+            </p>
+          </Panel>
+
           <Panel title="Social Service Links">
             <div className="grid gap-4 md:grid-cols-2">
               <SocialLinkField
@@ -2905,6 +3099,62 @@ function GeneralSettingsPage() {
           </Panel>
         </form>
       )}
+    </div>
+  );
+}
+
+function ServiceControlField({ title, enabled, charge, minAmount, maxAmount, hideCharge = false, onEnabledChange, onChargeChange, onMinChange, onMaxChange }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-slate-900">{title}</p>
+          <p className="mt-1 text-xs text-slate-500">{enabled ? 'Available in app' : 'Currently off'}</p>
+        </div>
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(event) => onEnabledChange(event.target.checked)}
+          className="h-5 w-5 accent-red-600"
+        />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {!hideCharge ? (
+          <label className="block">
+            <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Charge</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={charge}
+              onChange={(event) => onChargeChange(event.target.value)}
+              className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-red-400"
+            />
+          </label>
+        ) : null}
+        <label className="block">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Minimum</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={minAmount}
+            onChange={(event) => onMinChange(event.target.value)}
+            className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-red-400"
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Maximum</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={maxAmount}
+            onChange={(event) => onMaxChange(event.target.value)}
+            className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-red-400"
+          />
+        </label>
+      </div>
     </div>
   );
 }
@@ -4234,6 +4484,8 @@ function StatusBadge({ status }) {
     processing: 'border-sky-200 bg-sky-50 text-sky-700',
     successful: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     failed: 'border-red-200 bg-red-50 text-red-700',
+    banned: 'border-red-200 bg-red-50 text-red-700',
+    'chat banned': 'border-amber-200 bg-amber-50 text-amber-700',
     refunded: 'border-violet-200 bg-violet-50 text-violet-700',
     cancelled: 'border-slate-200 bg-slate-100 text-slate-600',
     inactive: 'border-slate-200 bg-slate-100 text-slate-600',

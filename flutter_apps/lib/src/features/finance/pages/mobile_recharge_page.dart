@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
 import 'package:flutter_apps/src/core/app_language.dart';
+import 'package:flutter_apps/src/services/app_runtime_settings.dart';
 import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
 import 'package:flutter_apps/src/shared/utils/snackbars.dart';
@@ -24,6 +25,8 @@ class _MobileRechargePageState extends State<MobileRechargePage> {
   List<dynamic> _beneficiaries = [];
   bool _loading = false;
   bool _otpSent = false;
+  double _charge = 0;
+  double _total = 0;
 
   static const _amounts = ['20', '50', '100', '200', '500', '1000'];
 
@@ -37,6 +40,7 @@ class _MobileRechargePageState extends State<MobileRechargePage> {
   }
 
   Future<void> _loadSession() async {
+    await AppRuntimeSettings.instance.load();
     final session = await const SessionStore().load();
     if (!mounted) return;
     setState(() {
@@ -104,7 +108,12 @@ class _MobileRechargePageState extends State<MobileRechargePage> {
     }
 
     if (!_otpSent) {
-      setState(() => _otpSent = true);
+      setState(() {
+        _otpSent = true;
+        _charge = double.tryParse(result.data['charge']?.toString() ?? '') ?? 0;
+        _total = double.tryParse(result.data['total_amount']?.toString() ?? '') ??
+            (double.tryParse(_amount.text.trim()) ?? 0) + _charge;
+      });
       showAppMessage(context, AppText.t('otp_sent_message'));
       return;
     }
@@ -236,6 +245,8 @@ class _MobileRechargePageState extends State<MobileRechargePage> {
                       keyboardType: TextInputType.number,
                       validator: _validateOtp,
                     ),
+                    const SizedBox(height: 12),
+                    _RechargeChargeSummary(charge: _charge, total: _total),
                   ],
                   const SizedBox(height: 24),
                   AppButton(
@@ -269,9 +280,7 @@ class _MobileRechargePageState extends State<MobileRechargePage> {
   String? _validateAmount(String? value) {
     final amount = num.tryParse(value?.trim() ?? '');
     if (amount == null) return AppText.t('invalid_amount');
-    if (amount < 10) return AppText.t('min_recharge');
-    if (amount > 50000) return AppText.t('max_recharge');
-    return null;
+    return AppRuntimeSettings.instance.amountError('mobile_recharge', amount.toDouble());
   }
 
   String? _validateOtp(String? value) {
@@ -456,6 +465,33 @@ class _ChoicePill extends StatelessWidget {
             color: selected ? Colors.white : AppColors.ink,
             fontWeight: FontWeight.w500,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RechargeChargeSummary extends StatelessWidget {
+  const _RechargeChargeSummary({required this.charge, required this.total});
+
+  final double charge;
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.financePrimary.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.financePrimary.withValues(alpha: .12)),
+      ),
+      child: Text(
+        '${AppText.t('service_charge')}: BDT ${charge.toStringAsFixed(2)}  •  ${AppText.t('total')}: BDT ${total.toStringAsFixed(2)}',
+        style: const TextStyle(
+          color: AppColors.financePrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

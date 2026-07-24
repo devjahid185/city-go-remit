@@ -14,7 +14,7 @@ class UserController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', Rule::in(['active', 'pending', 'inactive'])],
+            'status' => ['nullable', Rule::in(['active', 'pending', 'inactive', 'banned'])],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
@@ -38,6 +38,8 @@ class UserController extends Controller
                 'active' => (clone $baseQuery)->where('status', 'active')->count(),
                 'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
                 'inactive' => (clone $baseQuery)->where('status', 'inactive')->count(),
+                'banned' => (clone $baseQuery)->where('status', 'banned')->count(),
+                'chat_banned' => (clone $baseQuery)->whereNotNull('chat_banned_at')->count(),
                 'admins' => (clone $baseQuery)->where('is_admin', true)->count(),
             ],
             'users' => $users,
@@ -101,12 +103,18 @@ class UserController extends Controller
             'country_flag' => ['nullable', 'string', 'max:20'],
             'balance' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'password' => $passwordRules,
-            'status' => ['required', Rule::in(['active', 'pending', 'inactive'])],
+            'status' => ['required', Rule::in(['active', 'pending', 'inactive', 'banned'])],
             'is_admin' => ['nullable', 'boolean'],
+            'chat_banned' => ['nullable', 'boolean'],
+            'ban_reason' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $payload = collect($data)->except(['password'])->toArray();
+        $payload = collect($data)->except(['password', 'chat_banned'])->toArray();
         $payload['is_admin'] = $request->boolean('is_admin');
+        $payload['chat_banned_at'] = $request->boolean('chat_banned')
+            ? ($user?->chat_banned_at ?? now())
+            : null;
+        $payload['ban_reason'] = $data['ban_reason'] ?? null;
         $payload['email_verified_at'] = $data['status'] === 'pending'
             ? null
             : ($user?->email_verified_at ?? now());

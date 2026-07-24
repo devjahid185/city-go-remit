@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OtpVerification;
 use App\Models\User;
 use App\Models\WalletWithdrawal;
+use App\Services\AppServiceSettings;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,16 +17,29 @@ use Illuminate\Validation\ValidationException;
 
 class WalletWithdrawalController extends Controller
 {
-    public function requestOtp(Request $request, OtpService $otpService): JsonResponse
+    public function requestOtp(Request $request, OtpService $otpService, AppServiceSettings $settings): JsonResponse
     {
         $data = $this->validatedWithdrawalData($request);
+
+        if ($settings->maintenanceEnabled()) {
+            return response()->json(['message' => 'City Go Remit is under maintenance. Please try again later.'], 503);
+        }
+
+        if (! $settings->serviceEnabled(AppServiceSettings::WALLET_WITHDRAWAL)) {
+            return response()->json(['message' => 'Wallet withdrawal is temporarily unavailable.'], 422);
+        }
+
+        if ($message = $settings->amountLimitMessage(AppServiceSettings::WALLET_WITHDRAWAL, (float) $data['amount'])) {
+            return response()->json(['message' => $message], 422);
+        }
+
         $user = $this->activeUser($data['email']);
 
         if (! $user) {
             return response()->json(['message' => 'Active user account was not found.'], 422);
         }
 
-        $data['charge'] = $this->calculateCharge((float) $data['amount']);
+        $data['charge'] = $settings->charge(AppServiceSettings::WALLET_WITHDRAWAL);
         $data['total_amount'] = (float) $data['amount'] + $data['charge'];
 
         if ((float) $user->balance < (float) $data['total_amount']) {
@@ -123,7 +137,7 @@ class WalletWithdrawalController extends Controller
             'wallet_number' => ['required', 'regex:/^01[0-9]{9}$/'],
             'account_name' => ['nullable', 'string', 'max:120'],
             'contact_number' => ['nullable', 'string', 'max:30'],
-            'amount' => ['required', 'numeric', 'min:50', 'max:500000'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999'],
         ]);
     }
 
@@ -133,11 +147,6 @@ class WalletWithdrawalController extends Controller
             ->where('email', $email)
             ->where('status', 'active')
             ->first();
-    }
-
-    private function calculateCharge(float $amount): float
-    {
-        return min(round($amount * 0.0075, 2), 60);
     }
 
     private function payload(WalletWithdrawal $withdrawal): array

@@ -20,4 +20,14 @@ class AppSetting extends Model
     {
         static::query()->updateOrCreate(['key' => $key], ['value' => (string) $value]);
     }
+
+    public static function bool(string $key, bool $default = false): bool
+    {
+        return filter_var(static::value($key, $default ? '1' : '0'), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public static function float(string $key, float $default = 0): float
+    {
+        return (float) static::value($key, (string) $default);
+    }
 }

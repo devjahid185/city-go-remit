@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
 import 'package:flutter_apps/src/core/app_language.dart';
+import 'package:flutter_apps/src/features/auth/account_blocked_page.dart';
 import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
 import 'package:flutter_apps/src/shared/utils/snackbars.dart';
@@ -28,6 +29,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
   bool _loading = true;
   bool _sending = false;
   bool _adminTyping = false;
+  bool _chatBlocked = false;
   int? _lastMessageId;
   DateTime? _lastTypingToneAt;
   EditedChatImage? _imageDraft;
@@ -69,8 +71,24 @@ class _LiveChatPageState extends State<LiveChatPage> {
     if (!mounted) return;
 
     if (!result.ok) {
-      setState(() => _loading = false);
-      showAppMessage(context, result.message);
+      final chatBlocked = result.data['chat_banned'] == true;
+      final accountBanned = result.data['account_banned'] == true;
+      setState(() {
+        _loading = false;
+        _chatBlocked = chatBlocked;
+      });
+      if (accountBanned) {
+        await const SessionStore().signOut();
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AccountBlockedPage()),
+          (_) => false,
+        );
+      } else if (chatBlocked) {
+        _pollTimer?.cancel();
+      } else {
+        showAppMessage(context, result.message);
+      }
       return;
     }
 
@@ -97,6 +115,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
       _messages = parsedMessages;
       _lastMessageId = latestMessage?.id ?? _lastMessageId;
       _loading = false;
+      _chatBlocked = false;
     });
 
     await _api.markChatSeen(email: _email);
@@ -105,7 +124,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
 
   Future<void> _send() async {
     final text = _message.text.trim();
-    if ((text.isEmpty && _imageDraft == null) || _sending) return;
+    if ((text.isEmpty && _imageDraft == null) || _sending || _chatBlocked) return;
 
     setState(() => _sending = true);
     final result = await _api.sendChatMessage(
@@ -152,7 +171,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
   }
 
   void _onTyping(String value) {
-    if (_email.isEmpty || value.trim().isEmpty) return;
+    if (_email.isEmpty || value.trim().isEmpty || _chatBlocked) return;
     _playTypingTone();
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(milliseconds: 350), () {
@@ -206,7 +225,9 @@ class _LiveChatPageState extends State<LiveChatPage> {
           Expanded(
             child: _loading
                 ? Center(child: Text(AppText.t('chat_loading'), style: const TextStyle(color: AppColors.financeMuted, fontWeight: FontWeight.w500)))
-                : _messages.isEmpty
+                : _chatBlocked
+                    ? const _ChatBlocked()
+                    : _messages.isEmpty
                     ? const _EmptyChat()
                     : ListView.separated(
                         controller: _scroll,
@@ -221,7 +242,8 @@ class _LiveChatPageState extends State<LiveChatPage> {
                         itemCount: _messages.length + (_adminTyping ? 1 : 0),
                       ),
           ),
-          SafeArea(
+          if (!_chatBlocked)
+            SafeArea(
             top: false,
             child: Container(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
@@ -349,6 +371,55 @@ class _EmptyChat extends StatelessWidget {
             const SizedBox(height: 7),
             Text(AppText.t('chat_empty_body'), textAlign: TextAlign.center, style: const TextStyle(color: AppColors.financeMuted, height: 1.4, fontWeight: FontWeight.w500)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatBlocked extends StatelessWidget {
+  const _ChatBlocked();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.financeLine),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: AppColors.financePrimary.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.forum_rounded,
+                  color: AppColors.financePrimary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                AppText.t('chat_blocked'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OtpVerification;
 use App\Models\MobileRecharge;
 use App\Models\User;
+use App\Services\AppServiceSettings;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,9 +16,21 @@ use Illuminate\Validation\Rule;
 
 class MobileRechargeController extends Controller
 {
-    public function requestOtp(Request $request, OtpService $otpService): JsonResponse
+    public function requestOtp(Request $request, OtpService $otpService, AppServiceSettings $settings): JsonResponse
     {
         $data = $this->validatedRechargeData($request);
+
+        if ($settings->maintenanceEnabled()) {
+            return response()->json(['message' => 'City Go Remit is under maintenance. Please try again later.'], 503);
+        }
+
+        if (! $settings->serviceEnabled(AppServiceSettings::MOBILE_RECHARGE)) {
+            return response()->json(['message' => 'Mobile recharge is temporarily unavailable.'], 422);
+        }
+
+        if ($message = $settings->amountLimitMessage(AppServiceSettings::MOBILE_RECHARGE, (float) $data['amount'])) {
+            return response()->json(['message' => $message], 422);
+        }
 
         $user = User::query()
             ->where('email', $data['email'])
@@ -30,11 +43,14 @@ class MobileRechargeController extends Controller
             ], 422);
         }
 
-        if ((float) $user->balance < (float) $data['amount']) {
+        $data['charge'] = $settings->charge(AppServiceSettings::MOBILE_RECHARGE);
+        $data['total_amount'] = (float) $data['amount'] + $data['charge'];
+
+        if ((float) $user->balance < (float) $data['total_amount']) {
             return response()->json([
                 'message' => 'Insufficient balance for this recharge.',
                 'balance' => $user->balance,
-                'required_amount' => $data['amount'],
+                'required_amount' => $data['total_amount'],
             ], 422);
         }
 
@@ -42,6 +58,8 @@ class MobileRechargeController extends Controller
 
         return response()->json([
             'message' => 'A recharge confirmation OTP has been sent to your email.',
+            'charge' => $data['charge'],
+            'total_amount' => $data['total_amount'],
         ]);
     }
 
@@ -86,15 +104,17 @@ class MobileRechargeController extends Controller
         $recharge = DB::transaction(function () use ($user, $data): MobileRecharge {
             $lockedUser = User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-            if (! $lockedUser || (float) $lockedUser->balance < (float) $data['amount']) {
+            $totalAmount = (float) ($payload['total_amount'] ?? $data['amount']);
+
+            if (! $lockedUser || (float) $lockedUser->balance < $totalAmount) {
                 abort(response()->json([
                     'message' => 'Insufficient balance for this recharge.',
                     'balance' => $lockedUser?->balance ?? 0,
-                    'required_amount' => $data['amount'],
+                    'required_amount' => $totalAmount,
                 ], 422));
             }
 
-            $lockedUser->decrement('balance', (float) $data['amount']);
+            $lockedUser->decrement('balance', $totalAmount);
 
             return MobileRecharge::query()->create([
                 'user_id' => $lockedUser->id,
@@ -102,6 +122,8 @@ class MobileRechargeController extends Controller
                 'mobile_number' => $data['mobile_number'],
                 'operator' => $data['operator'],
                 'amount' => $data['amount'],
+                'charge' => $payload['charge'] ?? 0,
+                'total_amount' => $totalAmount,
                 'transaction_id' => 'MR'.now()->format('ymdHis').Str::upper(Str::random(6)),
                 'status' => 'pending',
                 'debited_at' => now(),
@@ -118,6 +140,8 @@ class MobileRechargeController extends Controller
                 'mobile_number' => $recharge->mobile_number,
                 'operator' => $recharge->operator,
                 'amount' => $recharge->amount,
+                'charge' => $recharge->charge,
+                'total_amount' => $recharge->total_amount,
                 'status' => $recharge->status,
                 'processed_at' => $recharge->processed_at?->toISOString(),
             ],
@@ -156,7 +180,7 @@ class MobileRechargeController extends Controller
             'email' => ['required', 'email'],
             'mobile_number' => ['required', 'digits:11'],
             'operator' => ['required', 'string', Rule::in(['Grameenphone', 'Robi', 'Banglalink', 'Airtel', 'Teletalk'])],
-            'amount' => ['required', 'numeric', 'min:10', 'max:50000'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:999999999'],
         ]);
     }
 }

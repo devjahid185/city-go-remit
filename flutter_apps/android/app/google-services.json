@@ -12,7 +12,20 @@
           "package_name": "com.sohojit.city.go.remit"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "945338558097-5510ulkniathem344eua4n4cobkivip4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sohojit.city.go.remit",
+            "certificate_hash": "09fc98a46bda7a34d043183fcf3bb030b9ada748"
+          }
+        },
+        {
+          "client_id": "945338558097-aalgq6jmh00pembk3hfmdr74v1u2nv7n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDziAhORhX7EvKagKWPzezGZ_gq6q7Zdho"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "945338558097-aalgq6jmh00pembk3hfmdr74v1u2nv7n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

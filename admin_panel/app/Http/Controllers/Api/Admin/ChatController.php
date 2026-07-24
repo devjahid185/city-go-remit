@@ -22,7 +22,7 @@ class ChatController extends Controller
         ]);
 
         $conversations = ChatConversation::query()
-            ->with(['user:id,name,email,phone', 'messages' => fn ($query) => $query->latest()->limit(5)])
+            ->with(['user:id,name,email,phone,status,chat_banned_at', 'messages' => fn ($query) => $query->latest()->limit(5)])
             ->withCount([
                 'messages as unread_for_admin' => fn ($query) => $query
                     ->where('sender_type', 'user')
@@ -108,8 +108,20 @@ class ChatController extends Controller
 
     public function update(Request $request, ChatConversation $conversation): JsonResponse
     {
-        $data = $request->validate(['status' => ['required', Rule::in($this->statuses())]]);
-        $conversation->update($data);
+        $data = $request->validate([
+            'status' => ['nullable', Rule::in($this->statuses())],
+            'chat_banned' => ['nullable', 'boolean'],
+        ]);
+
+        if (array_key_exists('status', $data)) {
+            $conversation->update(['status' => $data['status']]);
+        }
+
+        if (array_key_exists('chat_banned', $data)) {
+            $conversation->user?->forceFill([
+                'chat_banned_at' => $request->boolean('chat_banned') ? ($conversation->user->chat_banned_at ?? now()) : null,
+            ])->save();
+        }
 
         return response()->json([
             'message' => 'Conversation updated successfully.',
@@ -138,6 +150,8 @@ class ChatController extends Controller
             'user_name' => $conversation->user_name,
             'user_phone' => $conversation->user_phone,
             'status' => $conversation->status,
+            'chat_banned' => $conversation->user?->isChatBanned() ?? false,
+            'account_banned' => $conversation->user?->isBanned() ?? false,
             'admin_typing' => $conversation->admin_typing_at?->gt(now()->subSeconds(5)) ?? false,
             'user_typing' => $conversation->user_typing_at?->gt(now()->subSeconds(5)) ?? false,
             'last_message_at' => $conversation->last_message_at?->toISOString(),

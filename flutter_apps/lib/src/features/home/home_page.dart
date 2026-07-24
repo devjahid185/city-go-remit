@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
+import 'package:flutter_apps/src/features/auth/account_blocked_page.dart';
 import 'package:flutter_apps/src/features/finance/pages/finance_history_tab.dart';
 import 'package:flutter_apps/src/features/finance/pages/finance_home_tab.dart';
 import 'package:flutter_apps/src/features/finance/pages/finance_services_tab.dart';
 import 'package:flutter_apps/src/features/finance/pages/finance_settings_tab.dart';
 import 'package:flutter_apps/src/features/finance/widgets/finance_bottom_nav.dart';
+import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,17 +20,25 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  final _api = AuthApi();
   int _currentIndex = 0;
   late final PageController _pageController;
   late List<Widget> _pages;
   OverlayEntry? _swipeHintEntry;
+  Timer? _accessCheckTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     _pages = _buildPages();
+    _verifyAccountAccess();
+    _accessCheckTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _verifyAccountAccess(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _showSwipeHintOnce());
   }
 
@@ -40,9 +52,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _accessCheckTimer?.cancel();
     _removeSwipeHint();
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _verifyAccountAccess();
+    }
   }
 
   Future<void> _showSwipeHintOnce() async {
@@ -70,6 +91,23 @@ class _HomePageState extends State<HomePage> {
       index,
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _verifyAccountAccess() async {
+    final store = const SessionStore();
+    final session = await store.load();
+    if (!mounted || !session.loggedIn || session.userEmail.trim().isEmpty) return;
+
+    final result = await _api.profile(email: session.userEmail);
+    if (!mounted || result.ok || result.data['account_banned'] != true) return;
+
+    await store.signOut();
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AccountBlockedPage()),
+      (_) => false,
     );
   }
 

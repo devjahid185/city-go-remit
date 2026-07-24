@@ -28,6 +28,9 @@ class User extends Authenticatable
         'father_name',
         'mother_name',
         'email',
+        'google_id',
+        'google_avatar',
+        'auth_provider',
         'phone',
         'address',
         'country_name',
@@ -43,6 +46,8 @@ class User extends Authenticatable
         'referred_by_user_id',
         'referral_bonus_earned',
         'last_seen_at',
+        'chat_banned_at',
+        'ban_reason',
         'email_verified_at',
     ];
 
@@ -70,8 +75,19 @@ class User extends Authenticatable
             'balance' => 'decimal:2',
             'referral_bonus_earned' => 'decimal:2',
             'last_seen_at' => 'datetime',
+            'chat_banned_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->status === 'banned';
+    }
+
+    public function isChatBanned(): bool
+    {
+        return $this->chat_banned_at !== null;
     }
 
     public function firebaseDeviceTokens(): HasMany

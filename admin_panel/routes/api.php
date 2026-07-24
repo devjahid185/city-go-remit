@@ -36,10 +36,12 @@ use App\Http\Controllers\Api\WalletWithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login'])->name('api.login');
+Route::post('/google-login', [AuthController::class, 'googleLogin'])->name('api.google-login');
 Route::get('/banners', [BannerController::class, 'index'])->name('api.banners.index');
 Route::get('/banners/{banner}/image', [BannerController::class, 'image'])->name('api.banners.image');
 Route::get('/settings', [AppSettingController::class, 'show'])->name('api.settings.show');
 Route::get('/profile', [AuthController::class, 'profile'])->name('api.profile');
+Route::post('/profile/update', [AuthController::class, 'updateProfile'])->name('api.profile.update');
 Route::post('/notification-token', [NotificationTokenController::class, 'store'])->name('api.notification-token.store');
 Route::delete('/notification-token', [NotificationTokenController::class, 'destroy'])->name('api.notification-token.destroy');
 Route::post('/register', RegisteredUserController::class)->name('api.register');
