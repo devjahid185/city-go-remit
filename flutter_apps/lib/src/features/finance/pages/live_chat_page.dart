@@ -19,7 +19,7 @@ class LiveChatPage extends StatefulWidget {
   State<LiveChatPage> createState() => _LiveChatPageState();
 }
 
-class _LiveChatPageState extends State<LiveChatPage> {
+class _LiveChatPageState extends State<LiveChatPage> with WidgetsBindingObserver {
   final _api = AuthApi();
   final _message = TextEditingController();
   final _scroll = ScrollController();
@@ -38,16 +38,33 @@ class _LiveChatPageState extends State<LiveChatPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bootstrap();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pollTimer?.cancel();
     _typingTimer?.cancel();
     _message.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _pollTimer?.cancel();
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed && _email.isNotEmpty && !_chatBlocked) {
+      _startPolling();
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) _loadChat(silent: true);
+      });
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -61,13 +78,18 @@ class _LiveChatPageState extends State<LiveChatPage> {
     }
 
     await _loadChat();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) => _loadChat(silent: true));
   }
 
   Future<void> _loadChat({bool silent = false}) async {
     if (!silent && mounted) setState(() => _loading = true);
 
-    final result = await _api.chat(email: _email);
+    final result = await _api.chat(email: _email, showOfflineAlert: !silent);
     if (!mounted) return;
 
     if (!result.ok) {
@@ -86,7 +108,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
         );
       } else if (chatBlocked) {
         _pollTimer?.cancel();
-      } else {
+      } else if (!silent) {
         showAppMessage(context, result.message);
       }
       return;
@@ -118,7 +140,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
       _chatBlocked = false;
     });
 
-    await _api.markChatSeen(email: _email);
+    await _api.markChatSeen(email: _email, showOfflineAlert: false);
     _scrollToBottom();
   }
 
@@ -175,7 +197,7 @@ class _LiveChatPageState extends State<LiveChatPage> {
     _playTypingTone();
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(milliseconds: 350), () {
-      _api.sendChatTyping(email: _email);
+      _api.sendChatTyping(email: _email, showOfflineAlert: false);
     });
   }
 

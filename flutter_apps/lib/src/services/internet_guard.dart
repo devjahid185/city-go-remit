@@ -11,10 +11,12 @@ class InternetGuard {
   static bool _dialogOpen = false;
   static DateTime? _lastDialogAt;
 
-  static Future<bool> ensureOnline() async {
+  static bool get dialogOpen => _dialogOpen;
+
+  static Future<bool> ensureOnline({bool showDialog = true}) async {
     final online = await hasInternet();
 
-    if (!online) {
+    if (!online && showDialog) {
       _showOfflineDialog();
     }
 

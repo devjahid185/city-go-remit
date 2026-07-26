@@ -21,6 +21,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  static bool _homePopupShownThisLaunch = false;
+
   final _api = AuthApi();
   int _currentIndex = 0;
   late final PageController _pageController;
@@ -39,7 +41,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       const Duration(seconds: 30),
       (_) => _verifyAccountAccess(),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _showSwipeHintOnce());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showHomePopupOncePerLaunch();
+      _showSwipeHintOnce();
+    });
   }
 
   @override
@@ -77,6 +82,35 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       builder: (context) => _SwipeCoachmark(onClose: _removeSwipeHint),
     );
     Overlay.of(context).insert(_swipeHintEntry!);
+  }
+
+  Future<void> _showHomePopupOncePerLaunch() async {
+    if (_homePopupShownThisLaunch || !mounted) return;
+    _homePopupShownThisLaunch = true;
+
+    final result = await _api.appSettings();
+    if (!mounted || !result.ok) return;
+
+    final settings = result.data['settings'] as Map<String, dynamic>? ?? {};
+    if (settings['home_popup_enabled'] == false) return;
+
+    final title = settings['home_popup_title']?.toString().trim() ?? '';
+    final body = settings['home_popup_body']?.toString().trim() ?? '';
+    final buttonText = settings['home_popup_button_text']?.toString().trim() ?? '';
+    final imageUrl = settings['home_popup_image_url']?.toString().trim() ?? '';
+
+    if (title.isEmpty && body.isEmpty && imageUrl.isEmpty) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => _HomePopupDialog(
+        title: title.isEmpty ? 'City Go Remit' : title,
+        body: body,
+        buttonText: buttonText.isEmpty ? 'Continue' : buttonText,
+        imageUrl: imageUrl,
+      ),
+    );
   }
 
   void _removeSwipeHint() {
@@ -142,6 +176,132 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       bottomNavigationBar: FinanceBottomNav(
         currentIndex: _currentIndex,
         onTap: _changePage,
+      ),
+    );
+  }
+}
+
+class _HomePopupDialog extends StatelessWidget {
+  const _HomePopupDialog({
+    required this.title,
+    required this.body,
+    required this.buttonText,
+    required this.imageUrl,
+  });
+
+  final String title;
+  final String body;
+  final String buttonText;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 430),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.financeLine),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .16),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (imageUrl.isNotEmpty)
+                AspectRatio(
+                  aspectRatio: 16 / 7,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const _PopupImageFallback(),
+                  ),
+                )
+              else
+                const _PopupImageFallback(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (body.isNotEmpty) ...[
+                      const SizedBox(height: 9),
+                      Text(
+                        body,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.financeMuted,
+                          height: 1.45,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.financePrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          buttonText,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PopupImageFallback extends StatelessWidget {
+  const _PopupImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 150,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.financePrimary.withValues(alpha: .08),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.campaign_rounded,
+          color: AppColors.financePrimary,
+          size: 46,
+        ),
       ),
     );
   }

@@ -1,0 +1,14 @@
+version:
+  revision: "manual-scaffold"
+  channel: "stable"
+
+project_type: app
+
+migration:
+  platforms:
+    - platform: root
+      create_revision: manual-scaffold
+      base_revision: manual-scaffold
+    - platform: android
+      create_revision: manual-scaffold
+      base_revision: manual-scaffold

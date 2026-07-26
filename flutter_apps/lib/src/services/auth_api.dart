@@ -9,7 +9,7 @@ class AuthApi {
   AuthApi({
     this.baseUrl = const String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'https://c6b1-118-179-116-241.ngrok-free.app/api',
+      defaultValue: 'https://cgr.sohojbazar.com/api',
     ),
   });
 
@@ -503,8 +503,8 @@ class AuthApi {
     });
   }
 
-  Future<ApiResult> chat({required String email}) async {
-    return _get('/chat', {'email': email});
+  Future<ApiResult> chat({required String email, bool showOfflineAlert = true}) async {
+    return _get('/chat', {'email': email}, showOfflineAlert: showOfflineAlert);
   }
 
   Future<ApiResult> sendChatMessage({
@@ -526,16 +526,16 @@ class AuthApi {
     return _post('/chat/messages', {'email': email, 'message': message});
   }
 
-  Future<ApiResult> sendChatTyping({required String email}) {
-    return _post('/chat/typing', {'email': email});
+  Future<ApiResult> sendChatTyping({required String email, bool showOfflineAlert = true}) {
+    return _post('/chat/typing', {'email': email}, showOfflineAlert: showOfflineAlert);
   }
 
-  Future<ApiResult> markChatSeen({required String email}) {
-    return _post('/chat/seen', {'email': email});
+  Future<ApiResult> markChatSeen({required String email, bool showOfflineAlert = true}) {
+    return _post('/chat/seen', {'email': email}, showOfflineAlert: showOfflineAlert);
   }
 
-  Future<ApiResult> _get(String path, Map<String, String> query) async {
-    if (!await _ensureOnline()) return _offlineResult;
+  Future<ApiResult> _get(String path, Map<String, String> query, {bool showOfflineAlert = true}) async {
+    if (!await _ensureOnline(showDialog: showOfflineAlert)) return _offlineResult;
 
     try {
       final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
@@ -546,19 +546,19 @@ class AuthApi {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return ApiResult(
         ok: response.statusCode >= 200 && response.statusCode < 300,
-        message: body['message']?.toString() ?? 'Request completed.',
+        message: _safeMessage(body['message']?.toString(), 'Request completed.'),
         data: body,
       );
     } catch (_) {
       return const ApiResult(
         ok: false,
-        message: 'Could not connect to the server. Check API URL and internet.',
+        message: 'Could not connect to the server. Please check your internet and try again.',
       );
     }
   }
 
-  Future<ApiResult> _post(String path, Map<String, String> payload) async {
-    if (!await _ensureOnline()) return _offlineResult;
+  Future<ApiResult> _post(String path, Map<String, String> payload, {bool showOfflineAlert = true}) async {
+    if (!await _ensureOnline(showDialog: showOfflineAlert)) return _offlineResult;
 
     try {
       final response = await http
@@ -575,19 +575,19 @@ class AuthApi {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return ApiResult(
         ok: response.statusCode >= 200 && response.statusCode < 300,
-        message: body['message']?.toString() ?? 'Request completed.',
+        message: _safeMessage(body['message']?.toString(), 'Request completed.'),
         data: body,
       );
     } catch (_) {
       return const ApiResult(
         ok: false,
-        message: 'Could not connect to the server. Check API URL and internet.',
+        message: 'Could not connect to the server. Please check your internet and try again.',
       );
     }
   }
 
-  Future<ApiResult> _put(String path, Map<String, String> payload) async {
-    if (!await _ensureOnline()) return _offlineResult;
+  Future<ApiResult> _put(String path, Map<String, String> payload, {bool showOfflineAlert = true}) async {
+    if (!await _ensureOnline(showDialog: showOfflineAlert)) return _offlineResult;
 
     try {
       final response = await http
@@ -604,19 +604,19 @@ class AuthApi {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return ApiResult(
         ok: response.statusCode >= 200 && response.statusCode < 300,
-        message: body['message']?.toString() ?? 'Request completed.',
+        message: _safeMessage(body['message']?.toString(), 'Request completed.'),
         data: body,
       );
     } catch (_) {
       return const ApiResult(
         ok: false,
-        message: 'Could not connect to the server. Check API URL and internet.',
+        message: 'Could not connect to the server. Please check your internet and try again.',
       );
     }
   }
 
-  Future<ApiResult> _delete(String path, Map<String, String> payload) async {
-    if (!await _ensureOnline()) return _offlineResult;
+  Future<ApiResult> _delete(String path, Map<String, String> payload, {bool showOfflineAlert = true}) async {
+    if (!await _ensureOnline(showDialog: showOfflineAlert)) return _offlineResult;
 
     try {
       final response = await http
@@ -633,13 +633,13 @@ class AuthApi {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return ApiResult(
         ok: response.statusCode >= 200 && response.statusCode < 300,
-        message: body['message']?.toString() ?? 'Request completed.',
+        message: _safeMessage(body['message']?.toString(), 'Request completed.'),
         data: body,
       );
     } catch (_) {
       return const ApiResult(
         ok: false,
-        message: 'Could not connect to the server. Check API URL and internet.',
+        message: 'Could not connect to the server. Please check your internet and try again.',
       );
     }
   }
@@ -667,21 +667,35 @@ class AuthApi {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       return ApiResult(
         ok: response.statusCode >= 200 && response.statusCode < 300,
-        message: body['message']?.toString() ?? 'Request completed.',
+        message: _safeMessage(body['message']?.toString(), 'Request completed.'),
         data: body,
       );
     } catch (_) {
       return const ApiResult(
         ok: false,
-        message: 'Could not connect to the server. Check API URL and internet.',
+        message: 'Could not connect to the server. Please check your internet and try again.',
       );
     }
   }
 
-  Future<bool> _ensureOnline() => InternetGuard.ensureOnline();
+  Future<bool> _ensureOnline({bool showDialog = true}) {
+    return InternetGuard.ensureOnline(showDialog: showDialog);
+  }
 
   static const _offlineResult = ApiResult(
     ok: false,
     message: 'No internet connection. Please check your connection and try again.',
   );
+
+  String _safeMessage(String? message, String fallback) {
+    final cleaned = (message ?? fallback)
+        .replaceAll(RegExp(r'https?:\/\/\S+', caseSensitive: false), 'the server')
+        .replaceAll(RegExp(r'\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?', caseSensitive: false), 'the server')
+        .replaceAll(RegExp(r'\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:\/\S*)?'), 'the server')
+        .replaceAll(RegExp(r'\bAPI URL\b', caseSensitive: false), 'server connection')
+        .replaceAll(RegExp(r'\bbase URL\b', caseSensitive: false), 'server connection')
+        .trim();
+
+    return cleaned.isEmpty ? fallback : cleaned;
+  }
 }

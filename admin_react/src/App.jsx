@@ -133,7 +133,11 @@ function LoginPage({ onLogin }) {
       const { data } = await api.post('/admin/login', form);
       onLogin(data.admin, data.token);
     } catch (apiError) {
-      setError(apiError.response?.data?.message || 'Login failed. Please check your admin credentials.');
+      setError(
+        apiError.response?.data?.message ||
+          apiError.message ||
+          'Login failed. Please check API connection.',
+      );
     } finally {
       setLoading(false);
     }
@@ -2868,6 +2872,12 @@ function GeneralSettingsPage() {
   const [form, setForm] = useState({
     youtube_url: '',
     telegram_url: '',
+    home_popup_enabled: true,
+    home_popup_title: 'Welcome to City Go Remit',
+    home_popup_body: 'Manage payments, transfers and account services securely from one place.',
+    home_popup_button_text: 'Continue',
+    home_popup_image_url: '',
+    remove_home_popup_image: false,
     maintenance_mode: false,
     add_money_enabled: true,
     add_money_min_amount: '10',
@@ -2891,6 +2901,7 @@ function GeneralSettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [popupImage, setPopupImage] = useState(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
 
@@ -2906,6 +2917,12 @@ function GeneralSettingsPage() {
       setForm({
         youtube_url: response.data.settings?.youtube_url || '',
         telegram_url: response.data.settings?.telegram_url || '',
+        home_popup_enabled: response.data.settings?.home_popup_enabled !== false,
+        home_popup_title: response.data.settings?.home_popup_title || 'Welcome to City Go Remit',
+        home_popup_body: response.data.settings?.home_popup_body || 'Manage payments, transfers and account services securely from one place.',
+        home_popup_button_text: response.data.settings?.home_popup_button_text || 'Continue',
+        home_popup_image_url: response.data.settings?.home_popup_image_url || '',
+        remove_home_popup_image: false,
         maintenance_mode: Boolean(response.data.settings?.maintenance_mode),
         add_money_enabled: response.data.settings?.add_money_enabled !== false,
         add_money_min_amount: response.data.settings?.add_money_min_amount?.toString() || '10',
@@ -2940,10 +2957,24 @@ function GeneralSettingsPage() {
     setNotice('');
     setError('');
     try {
-      const response = await api.put('/admin/general-settings', form);
+      const payload = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (key === 'home_popup_image_url') return;
+        payload.append(key, typeof value === 'boolean' ? (value ? '1' : '0') : (value ?? ''));
+      });
+      if (popupImage) payload.append('home_popup_image', popupImage);
+      const response = await api.post('/admin/general-settings', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       setForm({
         youtube_url: response.data.settings?.youtube_url || '',
         telegram_url: response.data.settings?.telegram_url || '',
+        home_popup_enabled: response.data.settings?.home_popup_enabled !== false,
+        home_popup_title: response.data.settings?.home_popup_title || 'Welcome to City Go Remit',
+        home_popup_body: response.data.settings?.home_popup_body || 'Manage payments, transfers and account services securely from one place.',
+        home_popup_button_text: response.data.settings?.home_popup_button_text || 'Continue',
+        home_popup_image_url: response.data.settings?.home_popup_image_url || '',
+        remove_home_popup_image: false,
         maintenance_mode: Boolean(response.data.settings?.maintenance_mode),
         add_money_enabled: response.data.settings?.add_money_enabled !== false,
         add_money_min_amount: response.data.settings?.add_money_min_amount?.toString() || '10',
@@ -2965,6 +2996,7 @@ function GeneralSettingsPage() {
         wallet_withdrawal_min_amount: response.data.settings?.wallet_withdrawal_min_amount?.toString() || '50',
         wallet_withdrawal_max_amount: response.data.settings?.wallet_withdrawal_max_amount?.toString() || '500000',
       });
+      setPopupImage(null);
       setNotice(response.data.message);
     } catch (apiError) {
       const errors = apiError.response?.data?.errors;
@@ -3007,6 +3039,94 @@ function GeneralSettingsPage() {
                 className="h-5 w-5 accent-red-600"
               />
             </label>
+          </Panel>
+
+          <Panel title="Home Popup">
+            <div className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
+              <div className="space-y-4">
+                <label className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Show Home Popup</p>
+                    <p className="mt-1 text-sm text-slate-500">Shown once when the app opens and lands on Home.</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={form.home_popup_enabled}
+                    onChange={(event) => setForm({ ...form, home_popup_enabled: event.target.checked })}
+                    className="h-5 w-5 accent-red-600"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Title</span>
+                  <input
+                    value={form.home_popup_title}
+                    onChange={(event) => setForm({ ...form, home_popup_title: event.target.value })}
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-400"
+                    placeholder="Welcome to City Go Remit"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Message</span>
+                  <textarea
+                    rows={4}
+                    value={form.home_popup_body}
+                    onChange={(event) => setForm({ ...form, home_popup_body: event.target.value })}
+                    className="mt-2 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-400"
+                    placeholder="Write a short message for app users"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Button Text</span>
+                  <input
+                    value={form.home_popup_button_text}
+                    onChange={(event) => setForm({ ...form, home_popup_button_text: event.target.value })}
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-400"
+                    placeholder="Continue"
+                  />
+                </label>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-medium text-slate-900">Popup Banner Image</p>
+                <p className="mt-1 text-sm text-slate-500">Recommended: compact landscape image.</p>
+                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  {popupImage || form.home_popup_image_url ? (
+                    <img
+                      src={popupImage ? URL.createObjectURL(popupImage) : form.home_popup_image_url}
+                      alt="Home popup preview"
+                      className="h-40 w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-40 items-center justify-center text-sm text-slate-400">No image selected</div>
+                  )}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <label className="cursor-pointer rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                    Upload Image
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        setPopupImage(file);
+                        setForm({ ...form, remove_home_popup_image: false });
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPopupImage(null);
+                      setForm({ ...form, home_popup_image_url: '', remove_home_popup_image: true });
+                    }}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-white"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
           </Panel>
 
           <Panel title="Service Availability & Charges">

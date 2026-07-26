@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\DriveOfferOrderController as AdminApiDriveOff
 use App\Http\Controllers\Api\Admin\ExchangeRateController as AdminApiExchangeRateController;
 use App\Http\Controllers\Api\Admin\GeneralSettingController as AdminApiGeneralSettingController;
 use App\Http\Controllers\Api\Admin\MobileRechargeController as AdminApiMobileRechargeController;
+use App\Http\Controllers\Api\Admin\NotificationTokenController as AdminApiNotificationTokenController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminApiNotificationController;
 use App\Http\Controllers\Api\Admin\ProfileController as AdminApiProfileController;
 use App\Http\Controllers\Api\Admin\ReferralController as AdminApiReferralController;
@@ -40,6 +41,7 @@ Route::post('/google-login', [AuthController::class, 'googleLogin'])->name('api.
 Route::get('/banners', [BannerController::class, 'index'])->name('api.banners.index');
 Route::get('/banners/{banner}/image', [BannerController::class, 'image'])->name('api.banners.image');
 Route::get('/settings', [AppSettingController::class, 'show'])->name('api.settings.show');
+Route::get('/settings/home-popup-image', [AppSettingController::class, 'homePopupImage'])->name('api.settings.home-popup-image');
 Route::get('/profile', [AuthController::class, 'profile'])->name('api.profile');
 Route::post('/profile/update', [AuthController::class, 'updateProfile'])->name('api.profile.update');
 Route::post('/notification-token', [NotificationTokenController::class, 'store'])->name('api.notification-token.store');
@@ -88,10 +90,13 @@ Route::prefix('admin')->name('api.admin.')->group(function (): void {
     Route::middleware('admin.api')->group(function (): void {
         Route::get('/me', [AdminApiAuthController::class, 'me'])->name('me');
         Route::post('/logout', [AdminApiAuthController::class, 'logout'])->name('logout');
+        Route::post('/notification-token', [AdminApiNotificationTokenController::class, 'store'])->name('notification-token.store');
+        Route::delete('/notification-token', [AdminApiNotificationTokenController::class, 'destroy'])->name('notification-token.destroy');
         Route::put('/profile', [AdminApiProfileController::class, 'update'])->name('profile.update');
         Route::put('/profile/password', [AdminApiProfileController::class, 'changePassword'])->name('profile.password');
         Route::get('/dashboard', AdminApiDashboardController::class)->name('dashboard');
         Route::get('/general-settings', [AdminApiGeneralSettingController::class, 'show'])->name('general-settings.show');
+        Route::post('/general-settings', [AdminApiGeneralSettingController::class, 'update'])->name('general-settings.store');
         Route::put('/general-settings', [AdminApiGeneralSettingController::class, 'update'])->name('general-settings.update');
         Route::get('/banners', [AdminApiBannerController::class, 'index'])->name('banners.index');
         Route::post('/banners', [AdminApiBannerController::class, 'store'])->name('banners.store');

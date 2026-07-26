@@ -7,6 +7,7 @@ use App\Models\AppSetting;
 use App\Services\AppServiceSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class GeneralSettingController extends Controller
@@ -24,6 +25,12 @@ class GeneralSettingController extends Controller
         $data = $request->validate([
             'youtube_url' => ['nullable', 'url', 'max:500'],
             'telegram_url' => ['nullable', 'url', 'max:500'],
+            'home_popup_enabled' => ['nullable', 'boolean'],
+            'home_popup_title' => ['nullable', 'string', 'max:120'],
+            'home_popup_body' => ['nullable', 'string', 'max:500'],
+            'home_popup_button_text' => ['nullable', 'string', 'max:40'],
+            'home_popup_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_home_popup_image' => ['nullable', 'boolean'],
             'maintenance_mode' => ['nullable', 'boolean'],
             'add_money_enabled' => ['nullable', 'boolean'],
             'add_money_min_amount' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
@@ -48,7 +55,24 @@ class GeneralSettingController extends Controller
 
         AppSetting::put('youtube_url', $data['youtube_url'] ?? '');
         AppSetting::put('telegram_url', $data['telegram_url'] ?? '');
+        AppSetting::put('home_popup_enabled', ! empty($data['home_popup_enabled']) ? '1' : '0');
+        AppSetting::put('home_popup_title', $data['home_popup_title'] ?? '');
+        AppSetting::put('home_popup_body', $data['home_popup_body'] ?? '');
+        AppSetting::put('home_popup_button_text', $data['home_popup_button_text'] ?? 'Continue');
         AppSetting::put('maintenance_mode', ! empty($data['maintenance_mode']) ? '1' : '0');
+
+        if (! empty($data['remove_home_popup_image'])) {
+            $this->deleteCurrentPopupImage();
+            AppSetting::put('home_popup_image_path', '');
+            AppSetting::put('home_popup_image_updated_at', (string) time());
+        }
+
+        if ($request->hasFile('home_popup_image')) {
+            $this->deleteCurrentPopupImage();
+            $path = $request->file('home_popup_image')->store('home-popups', 'public');
+            AppSetting::put('home_popup_image_path', $path);
+            AppSetting::put('home_popup_image_updated_at', (string) time());
+        }
 
         foreach ([AppServiceSettings::ADD_MONEY, AppServiceSettings::MOBILE_RECHARGE, AppServiceSettings::BILL_PAYMENT, AppServiceSettings::BANK_TRANSFER, AppServiceSettings::WALLET_WITHDRAWAL] as $service) {
             $enabledKey = "{$service}_enabled";
@@ -92,6 +116,13 @@ class GeneralSettingController extends Controller
         return [
             'youtube_url' => AppSetting::value('youtube_url', ''),
             'telegram_url' => AppSetting::value('telegram_url', ''),
+            'home_popup_enabled' => AppSetting::bool('home_popup_enabled', true),
+            'home_popup_title' => AppSetting::value('home_popup_title', 'Welcome to City Go Remit'),
+            'home_popup_body' => AppSetting::value('home_popup_body', 'Manage payments, transfers and account services securely from one place.'),
+            'home_popup_button_text' => AppSetting::value('home_popup_button_text', 'Continue'),
+            'home_popup_image_url' => AppSetting::value('home_popup_image_path')
+                ? route('api.settings.home-popup-image', ['v' => AppSetting::value('home_popup_image_updated_at', time())])
+                : '',
             'maintenance_mode' => AppSetting::bool('maintenance_mode'),
             'add_money_enabled' => AppSetting::bool('add_money_enabled', true),
             'add_money_min_amount' => AppSetting::float('add_money_min_amount', 10),
@@ -113,5 +144,14 @@ class GeneralSettingController extends Controller
             'wallet_withdrawal_min_amount' => AppSetting::float('wallet_withdrawal_min_amount', 50),
             'wallet_withdrawal_max_amount' => AppSetting::float('wallet_withdrawal_max_amount', 500000),
         ];
+    }
+
+    private function deleteCurrentPopupImage(): void
+    {
+        $path = AppSetting::value('home_popup_image_path');
+
+        if ($path) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

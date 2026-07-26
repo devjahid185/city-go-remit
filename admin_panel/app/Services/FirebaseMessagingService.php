@@ -59,6 +59,21 @@ class FirebaseMessagingService
         return $this->sendToTokens($tokens, $title, $body, $data);
     }
 
+    public function sendToAdmins(string $title, string $body, array $data = []): array
+    {
+        $tokens = FirebaseDeviceToken::query()
+            ->where('is_active', true)
+            ->whereHas('user', fn ($query) => $query->where('is_admin', true))
+            ->pluck('token');
+
+        Log::info('Firebase send to admins requested.', [
+            'token_count' => $tokens->count(),
+            'title' => $title,
+        ]);
+
+        return $this->sendToTokens($tokens, $title, $body, $data);
+    }
+
     public function sendToToken(string $token, string $title, string $body, array $data = []): bool
     {
         try {
@@ -150,6 +165,9 @@ class FirebaseMessagingService
     private function credentials(): array
     {
         $path = config('services.firebase.credentials');
+        if (is_string($path) && $path !== '' && ! str_starts_with($path, '/') && ! preg_match('/^[A-Za-z]:[\\\\\/]/', $path)) {
+            $path = base_path($path);
+        }
 
         if (! $path || ! is_file($path)) {
             throw new RuntimeException('Firebase credentials file was not found.');

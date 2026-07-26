@@ -34,15 +34,8 @@ class OtpService
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        $subject = match ($purpose) {
-            self::REGISTER => 'Your account verification OTP',
-            self::MOBILE_RECHARGE => 'Confirm your mobile recharge',
-            self::BILL_PAYMENT => 'Confirm your bill payment',
-            self::BANK_TRANSFER => 'Confirm your bank transfer',
-            self::WALLET_WITHDRAWAL => 'Confirm your wallet withdrawal',
-            self::DRIVE_OFFER => 'Confirm your internet offer',
-            default => 'Your password reset OTP',
-        };
+        $mail = $this->mailContent($purpose, $payload);
+        $subject = $mail['subject'];
 
         if (in_array($purpose, [self::MOBILE_RECHARGE, self::BILL_PAYMENT, self::BANK_TRANSFER, self::WALLET_WITHDRAWAL, self::DRIVE_OFFER], true)) {
             Log::info('Transaction OTP issued.', [
@@ -68,6 +61,12 @@ class OtpService
             'purpose' => $purpose,
             'title' => $subject,
             'expiresIn' => '10 minutes',
+            'heading' => $mail['heading'],
+            'intro' => $mail['intro'],
+            'accent' => $mail['accent'],
+            'badge' => $mail['badge'],
+            'details' => $mail['details'],
+            'footerNote' => $mail['footerNote'],
         ], function ($message) use ($email, $subject): void {
             $message->to($email)->subject($subject);
         });
@@ -94,5 +93,132 @@ class OtpService
         ])->save();
 
         return $verification;
+    }
+
+    private function mailContent(string $purpose, array $payload): array
+    {
+        return match ($purpose) {
+            self::REGISTER => [
+                'subject' => 'Verify your City Go Remit account',
+                'heading' => 'Verify your new account',
+                'intro' => 'Use this one-time password to complete your City Go Remit account registration.',
+                'accent' => '#00503a',
+                'badge' => 'Account Verification',
+                'details' => [],
+                'footerNote' => 'If you did not request a new account, you can safely ignore this email.',
+            ],
+            self::PASSWORD_RESET => [
+                'subject' => 'Reset your City Go Remit password',
+                'heading' => 'Reset your password safely',
+                'intro' => 'Use this one-time password to reset your City Go Remit account password.',
+                'accent' => '#7c2d12',
+                'badge' => 'Password Reset',
+                'details' => [],
+                'footerNote' => 'If you did not request a password reset, please keep your account secure and ignore this email.',
+            ],
+            self::MOBILE_RECHARGE => [
+                'subject' => 'Confirm your mobile recharge',
+                'heading' => 'Confirm mobile recharge',
+                'intro' => 'Use this OTP to approve your mobile recharge request.',
+                'accent' => '#0f766e',
+                'badge' => 'Recharge Confirmation',
+                'details' => $this->details([
+                    'Operator' => $payload['operator'] ?? null,
+                    'Mobile Number' => $payload['mobile_number'] ?? null,
+                    'Amount' => $this->money($payload['amount'] ?? null),
+                    'Charge' => $this->money($payload['charge'] ?? null),
+                    'Total' => $this->money($payload['total_amount'] ?? $payload['amount'] ?? null),
+                ]),
+                'footerNote' => 'If you did not start this recharge, do not share this code with anyone.',
+            ],
+            self::BILL_PAYMENT => [
+                'subject' => 'Confirm your bill payment',
+                'heading' => 'Confirm bill payment',
+                'intro' => 'Use this OTP to approve your bill payment request.',
+                'accent' => '#1d4ed8',
+                'badge' => 'Bill Payment Confirmation',
+                'details' => $this->details([
+                    'Provider' => $payload['provider'] ?? null,
+                    'Bill Type' => $payload['bill_type'] ?? null,
+                    'Account Number' => $payload['account_number'] ?? null,
+                    'Billing Period' => $payload['billing_period'] ?? null,
+                    'Amount' => $this->money($payload['amount'] ?? null),
+                    'Total' => $this->money($payload['total_amount'] ?? $payload['amount'] ?? null),
+                ]),
+                'footerNote' => 'If you did not start this bill payment, do not share this code with anyone.',
+            ],
+            self::BANK_TRANSFER => [
+                'subject' => 'Confirm your bank transfer',
+                'heading' => 'Confirm bank transfer',
+                'intro' => 'Use this OTP to approve your bank transfer request.',
+                'accent' => '#4338ca',
+                'badge' => 'Bank Transfer Confirmation',
+                'details' => $this->details([
+                    'Bank' => $payload['bank_name'] ?? null,
+                    'Account Name' => $payload['account_name'] ?? null,
+                    'Account Number' => $payload['account_number'] ?? null,
+                    'Amount' => $this->money($payload['amount'] ?? null),
+                    'Charge' => $this->money($payload['charge'] ?? null),
+                    'Total' => $this->money($payload['total_amount'] ?? $payload['amount'] ?? null),
+                ]),
+                'footerNote' => 'If you did not start this bank transfer, do not share this code with anyone.',
+            ],
+            self::WALLET_WITHDRAWAL => [
+                'subject' => 'Confirm your wallet withdrawal',
+                'heading' => 'Confirm wallet withdrawal',
+                'intro' => 'Use this OTP to approve your wallet withdrawal request.',
+                'accent' => '#be123c',
+                'badge' => 'Wallet Withdrawal Confirmation',
+                'details' => $this->details([
+                    'Wallet' => $payload['wallet_provider'] ?? null,
+                    'Wallet Number' => $payload['wallet_number'] ?? null,
+                    'Amount' => $this->money($payload['amount'] ?? null),
+                    'Charge' => $this->money($payload['charge'] ?? null),
+                    'Total' => $this->money($payload['total_amount'] ?? $payload['amount'] ?? null),
+                ]),
+                'footerNote' => 'If you did not start this wallet withdrawal, do not share this code with anyone.',
+            ],
+            self::DRIVE_OFFER => [
+                'subject' => 'Confirm your internet offer',
+                'heading' => 'Confirm internet offer purchase',
+                'intro' => 'Use this OTP to approve your internet offer purchase.',
+                'accent' => '#0369a1',
+                'badge' => 'Internet Offer Confirmation',
+                'details' => $this->details([
+                    'Offer' => $payload['offer_title'] ?? null,
+                    'Operator' => $payload['operator'] ?? null,
+                    'Mobile Number' => $payload['mobile_number'] ?? null,
+                    'Package Price' => $this->money($payload['price'] ?? null),
+                    'Service Charge' => $this->money($payload['service_charge'] ?? null),
+                    'Total' => $this->money($payload['total_amount'] ?? $payload['price'] ?? null),
+                ]),
+                'footerNote' => 'If you did not start this internet offer purchase, do not share this code with anyone.',
+            ],
+            default => [
+                'subject' => 'Your City Go Remit verification code',
+                'heading' => 'Confirm your request',
+                'intro' => 'Use this one-time password to continue your request.',
+                'accent' => '#00503a',
+                'badge' => 'Security Verification',
+                'details' => [],
+                'footerNote' => 'If you did not request this code, you can safely ignore this email.',
+            ],
+        };
+    }
+
+    private function details(array $items): array
+    {
+        return collect($items)
+            ->filter(fn ($value) => $value !== null && trim((string) $value) !== '')
+            ->all();
+    }
+
+    private function money(mixed $amount): ?string
+    {
+        if ($amount === null || $amount === '') {
+            return null;
+        }
+
+        return 'BDT '.number_format((float) $amount, 2);
     }
 }

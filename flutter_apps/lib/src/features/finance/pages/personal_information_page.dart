@@ -6,6 +6,7 @@ import 'package:flutter_apps/src/core/app_colors.dart';
 import 'package:flutter_apps/src/core/app_language.dart';
 import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
+import 'package:flutter_apps/src/shared/utils/snackbars.dart';
 import 'package:flutter_apps/src/shared/widgets/app_button.dart';
 import 'package:flutter_apps/src/shared/widgets/app_text_field.dart';
 
@@ -165,7 +166,7 @@ class _PersonalInformationPageState extends State<PersonalInformationPage> {
 
     if (!result.ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
+        SnackBar(content: Text(safeAppMessageText(result.message))),
       );
       return;
     }

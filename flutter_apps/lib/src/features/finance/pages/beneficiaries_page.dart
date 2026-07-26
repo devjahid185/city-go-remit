@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_apps/src/core/app_colors.dart';
 import 'package:flutter_apps/src/services/auth_api.dart';
 import 'package:flutter_apps/src/services/session_store.dart';
+import 'package:flutter_apps/src/shared/utils/snackbars.dart';
 
 class BeneficiariesPage extends StatefulWidget {
   const BeneficiariesPage({super.key});
@@ -52,7 +53,7 @@ class _BeneficiariesPageState extends State<BeneficiariesPage> {
   Future<void> _delete(Map<String, dynamic> item) async {
     final result = await _api.deleteBeneficiary(id: item['id'].toString(), email: _email);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(safeAppMessageText(result.message))));
     if (result.ok) _load();
   }
 
@@ -233,7 +234,7 @@ class _BeneficiarySheetState extends State<_BeneficiarySheet> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(safeAppMessageText(result.message))));
     if (result.ok) Navigator.of(context).pop(true);
   }
 

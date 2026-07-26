@@ -50,14 +50,26 @@ class SokherBazarPaymentApi {
         ok: response.statusCode >= 200 &&
             response.statusCode < 300 &&
             body['success'] == true,
-        message: body['message']?.toString() ?? 'Payment initialized.',
+        message: _safeMessage(body['message']?.toString(), 'Payment initialized.'),
         data: body,
       );
     } catch (_) {
       return const ApiResult(
         ok: false,
-        message: 'Could not connect to Sokher Bazar payment server.',
+        message: 'Could not connect to the payment gateway. Please try again.',
       );
     }
+  }
+
+  String _safeMessage(String? message, String fallback) {
+    final cleaned = (message ?? fallback)
+        .replaceAll(RegExp(r'https?:\/\/\S+', caseSensitive: false), 'the server')
+        .replaceAll(RegExp(r'\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?', caseSensitive: false), 'the server')
+        .replaceAll(RegExp(r'\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?(?:\/\S*)?'), 'the server')
+        .replaceAll(RegExp(r'\bAPI URL\b', caseSensitive: false), 'server connection')
+        .replaceAll(RegExp(r'\bbase URL\b', caseSensitive: false), 'server connection')
+        .trim();
+
+    return cleaned.isEmpty ? fallback : cleaned;
   }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatConversation;
 use App\Models\ChatMessage;
 use App\Models\User;
+use App\Services\FirebaseMessagingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +30,7 @@ class ChatController extends Controller
         ]);
     }
 
-    public function send(Request $request): JsonResponse
+    public function send(Request $request, FirebaseMessagingService $firebase): JsonResponse
     {
         $data = $request->validate([
             'email' => ['required', 'email'],
@@ -59,6 +60,8 @@ class ChatController extends Controller
             'user_typing_at' => null,
             'last_message_at' => now(),
         ]);
+
+        $this->notifyAdmins($conversation->fresh(), $message, $firebase);
 
         return response()->json([
             'message' => 'Message sent successfully.',
@@ -202,6 +205,18 @@ class ChatController extends Controller
             'seen_at' => $message->seen_at?->toISOString(),
             'created_at' => $message->created_at?->toISOString(),
         ];
+    }
+
+    private function notifyAdmins(ChatConversation $conversation, ChatMessage $message, FirebaseMessagingService $firebase): void
+    {
+        $body = trim($message->message) ?: ($message->attachment_path ? 'Sent an image.' : 'Sent a new message.');
+
+        $firebase->sendToAdmins('New customer message', $body, [
+            'type' => 'admin_chat_message',
+            'conversation_id' => $conversation->id,
+            'message_id' => $message->id,
+            'sender_email' => $conversation->email,
+        ]);
     }
 
     private function storeAttachment(Request $request): array

@@ -1,4 +1,4 @@
-# Sokher Bazar React Admin
+# City Go Remit React Admin
 
 Standalone React + Tailwind admin panel for the Laravel API backend.
 
